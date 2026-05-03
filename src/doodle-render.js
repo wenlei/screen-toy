@@ -63,6 +63,25 @@
     return arr;
   }
 
+  // ---- Sleep / wakeup sheets ----
+  var SLEEP_COLS = 6, SLEEP_FRAME_W = 255, SLEEP_FRAME_H = 256;
+
+  var sleepImg = new Image();
+  var sleepLoaded = false;
+  sleepImg.onload = function () { sleepLoaded = true; };
+  sleepImg.src = basePath + 'sleep_sheet.png';
+
+  var wakeImg = new Image();
+  var wakeLoaded = false;
+  wakeImg.onload = function () { wakeLoaded = true; };
+  wakeImg.src = basePath + 'wakeup_sheet.png';
+
+  function getSleepWakeRect(frameIndex) {
+    var col = frameIndex % SLEEP_COLS;
+    var row = Math.floor(frameIndex / SLEEP_COLS);
+    return { x: col * 256, y: row * SLEEP_FRAME_H, w: SLEEP_FRAME_W, h: SLEEP_FRAME_H };
+  }
+
   // ---- State mapping (dog only) ----
   var STATE_MAP = {
     idle: 'idle', wander: 'walk', sit: 'sit', poked: 'poke', dragged: 'drag',
@@ -136,6 +155,23 @@
     if (deltaMs > 200) deltaMs = 200;
 
     ctx.clearRect(0, 0, DISPLAY_W, DISPLAY_H);
+
+    // Sleep / wakeup: draw from dedicated sheet, skip normal dog draw
+    var _st = p._state;
+    if (_st === 'falling_asleep' || _st === 'sleeping' || _st === 'waking_up') {
+      var swSheet = (_st === 'waking_up') ? wakeImg : sleepImg;
+      var swReady = (_st === 'waking_up') ? wakeLoaded : sleepLoaded;
+      if (swReady && p.sleepFrame !== undefined) {
+        var swRect = getSleepWakeRect(p.sleepFrame);
+        var swAspect = swRect.w / swRect.h;
+        var swDW, swDH;
+        if (swAspect > DISPLAY_W / DISPLAY_H) { swDW = DISPLAY_W; swDH = DISPLAY_W / swAspect; }
+        else { swDH = DISPLAY_H; swDW = DISPLAY_H * swAspect; }
+        ctx.drawImage(swSheet, swRect.x, swRect.y, swRect.w, swRect.h,
+          (DISPLAY_W - swDW) / 2, (DISPLAY_H - swDH) / 2, swDW, swDH);
+      }
+      return;
+    }
 
     var animState = STATE_MAP[p._state] || 'idle';
     if (wanderDir !== undefined && animState === 'walk') {

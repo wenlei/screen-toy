@@ -6,6 +6,9 @@
     SIT: 'sit',
     POKED: 'poked',
     DRAGGED: 'dragged',
+    FALLING_ASLEEP: 'falling_asleep',
+    SLEEPING: 'sleeping',
+    WAKING_UP: 'waking_up',
   };
 
   function Behavior(robot) {
@@ -70,6 +73,10 @@
     // Target eye direction (for smoothing)
     this.targetEyeDX = 0;
     this.targetEyeDY = 0;
+
+    // Sleep/wake animation
+    this.sleepAnimTimer = 0;
+    this.sleepFrameIndex = 0;
   }
 
   Behavior.prototype.initPosition = function (x, y) {
@@ -111,6 +118,15 @@
         break;
       case State.DRAGGED:
         this._updateDragged(dt);
+        break;
+      case State.FALLING_ASLEEP:
+        this._updateFallingAsleep(dt);
+        break;
+      case State.SLEEPING:
+        this._updateSleeping(dt);
+        break;
+      case State.WAKING_UP:
+        this._updateWakingUp(dt);
         break;
     }
 
@@ -331,8 +347,58 @@
 
   // ---- Bubble logic ----
 
+  Behavior.prototype._updateFallingAsleep = function (dt) {
+    var FPS = 8, TOTAL = 24;
+    this.sleepAnimTimer += dt;
+    this.sleepFrameIndex = Math.min(TOTAL - 1, Math.floor(this.sleepAnimTimer * FPS));
+    this.anim.sleepFrame = this.sleepFrameIndex;
+    this.anim.bodyBob = 0; this.anim.squish = 0;
+    if (this.sleepFrameIndex >= TOTAL - 1) {
+      this.state = State.SLEEPING;
+    }
+  };
+
+  Behavior.prototype._updateSleeping = function () {
+    this.anim.sleepFrame = 23;
+    this.anim.bodyBob = 0; this.anim.squish = 0;
+  };
+
+  Behavior.prototype._updateWakingUp = function (dt) {
+    var FPS = 8, TOTAL = 24;
+    this.sleepAnimTimer += dt;
+    this.sleepFrameIndex = Math.min(TOTAL - 1, Math.floor(this.sleepAnimTimer * FPS));
+    this.anim.sleepFrame = this.sleepFrameIndex;
+    this.anim.bodyBob = 0; this.anim.squish = 0;
+    if (this.sleepFrameIndex >= TOTAL - 1) {
+      this._startIdle();
+    }
+  };
+
+  Behavior.prototype.isSleeping = function () {
+    return this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP;
+  };
+
+  Behavior.prototype.wakeUp = function () {
+    if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP) {
+      this.state = State.WAKING_UP;
+      this.sleepAnimTimer = 0;
+      this.sleepFrameIndex = 0;
+    }
+  };
+
+  Behavior.prototype._isInCorner = function () {
+    // WIN_W=152 WIN_H=132, drag clamps to [76, screenW-76] x [66, screenH-66]
+    // Corner = within 60px of minimum/maximum clamped position
+    var screenW = typeof screen !== 'undefined' ? screen.width : 1440;
+    var screenH = typeof screen !== 'undefined' ? screen.height : 900;
+    var nearH = this.screenX < 76 + 60 || this.screenX > screenW - 76 - 60;
+    var nearV = this.screenY < 66 + 60 || this.screenY > screenH - 66 - 60;
+    return nearH && nearV;
+  };
+
   Behavior.prototype._updateBubble = function (dt) {
     if (this._sitLocked) return;
+    if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP || this.state === State.WAKING_UP) return;
     if (this.bubbleQueue.length > 0) return;
     this.bubbleTimer -= dt * 1000;
     if (this.bubbleTimer <= 0) {
@@ -389,7 +455,8 @@
   };
 
   Behavior.prototype._updateBlink = function (dt) {
-    if (this.state === State.POKED) return; // poke handles its own blink
+    if (this.state === State.POKED) return;
+    if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP) return;
 
     this.blinkCooldown -= dt;
     if (this.blinkCooldown <= 0 && this.blinkTimer <= 0) {
@@ -446,7 +513,13 @@
 
   Behavior.prototype.stopDrag = function () {
     if (this.state === State.DRAGGED) {
-      this._startIdle();
+      if (this._isInCorner()) {
+        this.state = State.FALLING_ASLEEP;
+        this.sleepAnimTimer = 0;
+        this.sleepFrameIndex = 0;
+      } else {
+        this._startIdle();
+      }
     }
   };
 
