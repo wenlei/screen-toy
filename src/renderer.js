@@ -37,6 +37,8 @@
   var dragOffsetX = 0;
   var dragOffsetY = 0;
   var mouseDownPos = null;
+  var lastClickTime = 0;
+  var DOUBLE_CLICK_MS = 400;
 
   // Frame timing
   var lastTime = performance.now();
@@ -78,8 +80,16 @@
   canvas.addEventListener('mousedown', function (e) {
     if (!mouseScreen || isDragging) return;
 
-    var onRobot = behavior.isClickOnRobot(mouseScreen, SCALE);
-    if (onRobot) {
+    if (behavior.isSleeping()) {
+      // Sleeping: only track clicks, never start drag
+      var halfW = canvas.width / 2;
+      var halfH = canvas.height / 2;
+      if (Math.abs(mouseScreen.x - behavior.screenX) <= halfW &&
+          Math.abs(mouseScreen.y - behavior.screenY) <= halfH) {
+        isDragging = true;
+        mouseDownPos = { x: mouseScreen.x, y: mouseScreen.y };
+      }
+    } else if (behavior.isClickOnRobot(mouseScreen, SCALE)) {
       isDragging = true;
       mouseDownPos = { x: mouseScreen.x, y: mouseScreen.y };
       dragOffsetX = mouseScreen.x - behavior.screenX;
@@ -102,15 +112,25 @@
     }
 
     if (dist < 5) {
-      // Click → show menu + lock fox in sit (no wandering or talking while menu is open)
-      behavior.lockSit();
-      if (window.bubbleAPI) window.bubbleAPI.done(); // hide any visible bubble immediately
-      if (window.screenToy) {
-        window.screenToy.showMenu({
-          x: behavior.screenX,
-          y: behavior.screenY,
-        });
-        window.screenToy.stopDrag();
+      if (behavior.isSleeping()) {
+        // Double-click sleeping fox → wake up
+        var now = Date.now();
+        if (now - lastClickTime < DOUBLE_CLICK_MS) {
+          behavior.wakeUp();
+          lastClickTime = 0;
+        } else {
+          lastClickTime = now;
+        }
+        if (window.screenToy) window.screenToy.stopDrag();
+      } else {
+        // Click awake fox → show menu
+        lastClickTime = 0;
+        behavior.lockSit();
+        if (window.bubbleAPI) window.bubbleAPI.done();
+        if (window.screenToy) {
+          window.screenToy.showMenu({ x: behavior.screenX, y: behavior.screenY });
+          window.screenToy.stopDrag();
+        }
       }
     } else {
       behavior.stopDrag();
@@ -172,10 +192,9 @@
     if (isDragging && mouseScreen) {
       behavior.screenX = mouseScreen.x - dragOffsetX;
       behavior.screenY = mouseScreen.y - dragOffsetY;
-      // Clamp to screen
-      var margin = 20;
-      behavior.screenX = clamp(behavior.screenX, margin, sb.width - margin);
-      behavior.screenY = clamp(behavior.screenY, margin, sb.height - margin);
+      // Clamp so the window stays fully on-screen (window is canvas.width × canvas.height)
+      behavior.screenX = clamp(behavior.screenX, canvas.width / 2, sb.width - canvas.width / 2);
+      behavior.screenY = clamp(behavior.screenY, canvas.height / 2, sb.height - canvas.height / 2);
     }
 
     // Update behavior (state machine)
@@ -199,12 +218,17 @@
     boundsSendTimer += dt;
     if (boundsSendTimer > 0.05) {
       boundsSendTimer = 0;
-      var displayW = RobotSprite.WIDTH * SCALE;
-      var displayH = RobotSprite.HEIGHT * SCALE;
-      var wx = canvas.width / 2 - displayW / 2;
-      var wy = canvas.height / 2 - displayH / 2;
       if (window.screenToy && !isDragging) {
-        window.screenToy.sendBounds({ x: wx, y: wy, w: displayW, h: displayH });
+        if (behavior.isSleeping() || behavior.state === 'waking_up') {
+          // Sleeping: make full window clickable
+          window.screenToy.sendBounds({ x: 0, y: 0, w: canvas.width, h: canvas.height });
+        } else {
+          var displayW = RobotSprite.WIDTH * SCALE;
+          var displayH = RobotSprite.HEIGHT * SCALE;
+          var wx = canvas.width / 2 - displayW / 2;
+          var wy = canvas.height / 2 - displayH / 2;
+          window.screenToy.sendBounds({ x: wx, y: wy, w: displayW, h: displayH });
+        }
       }
     }
 
@@ -214,19 +238,21 @@
     // Draw robot to offscreen canvas
     RobotSprite.draw(spriteCtx, behavior.anim);
 
-    // Draw subtle glow for visibility against any background
     var dW = RobotSprite.WIDTH * SCALE;
     var dH = RobotSprite.HEIGHT * SCALE;
     var ox = Math.round(canvas.width / 2 - dW / 2);
     var oy = Math.round(canvas.height / 2 - dH / 2);
 
-    ctx.save();
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.ellipse(canvas.width / 2, canvas.height / 2 + dH * 0.35, dW * 0.4, dH * 0.08, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    // Shadow only when awake
+    if (!behavior.isSleeping() && behavior.state !== 'waking_up') {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.ellipse(canvas.width / 2, canvas.height / 2 + dH * 0.35, dW * 0.4, dH * 0.08, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Draw to main canvas (scaled, centered)
     ctx.drawImage(spriteCanvas, 0, 0, RobotSprite.WIDTH, RobotSprite.HEIGHT, ox, oy, dW, dH);
