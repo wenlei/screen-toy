@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: transparent;
+    overflow: visible;
+    position: relative;
+  }
+
+  canvas#deco {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* Menu overlay */
+  .menu {
+    position: absolute;
+    width: 194px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+  }
+  .menu.visible { opacity: 1; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 8px;
+    height: 28px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.1s;
+    white-space: nowrap;
+  }
+  .item:hover { background: rgba(0, 0, 0, 0.06); }
+  .item:active { background: rgba(0, 0, 0, 0.10); }
+
+  .icon {
+    font-size: 15px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .icon img {
+    width: 16px; height: 16px;
+    object-fit: contain;
+    vertical-align: middle;
+    border-radius: 3px;
+  }
+
+  .label {
+    font: 13px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1c1c1c;
+    flex: 1;
+    letter-spacing: -0.1px;
+  }
+
+  .item-dismiss .label { color: #999; font-size: 12px; }
+  .item-link .label    { color: #555; font-size: 12px; }
+
+  .sep {
+    height: 1px;
+    background: rgba(0,0,0,0.08);
+    margin: 3px 10px;
+  }
+</style>
+</head>
+<body>
+<canvas id="deco"></canvas>
+<div class="menu" id="menu"></div>
+<div id="winBorder" style="display:none;position:fixed;inset:0;border:2px solid rgba(255,0,80,0.8);pointer-events:none;z-index:9999;box-sizing:border-box;"></div>
+<script src="menu.js"></script>
+</body>
+</html>

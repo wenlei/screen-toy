@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden; }
+
+  .wrapper {
+    position: relative;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .wrapper.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  canvas { display: block; }
+
+  .text {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1c1c1c;
+    text-align: center;
+    padding: 10px 22px 6px;
+    word-break: break-word;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper" id="wrapper">
+  <canvas id="bc"></canvas>
+  <div class="text" id="textEl"></div>
+</div>
+<div id="winBorder" style="display:none;position:fixed;inset:0;border:2px solid rgba(255,0,80,0.8);pointer-events:none;z-index:9999;box-sizing:border-box;"></div>
+<script src="bubble.js"></script>
+</body>
+</html>
