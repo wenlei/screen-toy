@@ -77,6 +77,10 @@
     // Sleep/wake animation
     this.sleepAnimTimer = 0;
     this.sleepFrameIndex = 0;
+
+    // Scheduled quotes
+    this.scheduledCheckTimer = 0;
+    this.lastFiredKey = '';
   }
 
   Behavior.prototype.initPosition = function (x, y) {
@@ -132,6 +136,7 @@
 
     this._updateBlink(dt);
     this._updateBubble(dt);
+    this._updateScheduled(dt);
     this._updateAirplane(dt);
 
     // Pass state info to sprite for frame selection
@@ -416,11 +421,51 @@
     }
   };
 
+  Behavior.prototype._updateScheduled = function (dt) {
+    if (this._sitLocked) return;
+    if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP || this.state === State.WAKING_UP) return;
+    if (this.bubbleQueue.length > 0) return;
+
+    this.scheduledCheckTimer -= dt;
+    if (this.scheduledCheckTimer > 0) return;
+    this.scheduledCheckTimer = 30; // check every 30 seconds
+
+    var schedules = (window.__CONFIG && window.__CONFIG.scheduledQuotes) || [];
+    if (!schedules.length) return;
+
+    var now = new Date();
+    var key = now.getHours() + ':' + now.getMinutes();
+    if (key === this.lastFiredKey) return;
+
+    for (var i = 0; i < schedules.length; i++) {
+      var s = schedules[i];
+      if (s.hour === now.getHours() && s.minute === now.getMinutes()) {
+        this.lastFiredKey = key;
+        if (s.anim) {
+          this.triggerAnim(s.anim);
+        }
+        if (s.text) {
+          if (Array.isArray(s.text)) {
+            this.bubbleQueue = s.text.slice();
+            this.anim._bubbleQueue = this.bubbleQueue;
+          } else {
+            this.anim._bubbleText = s.text;
+          }
+        }
+        break;
+      }
+    }
+  };
+
   Behavior.prototype._triggerRandomBubble = function () {
+    var seqs   = (window.__CONFIG && window.__CONFIG.sequences)    || [];
     var quotes = (window.__CONFIG && window.__CONFIG.randomQuotes) || ['你好~'];
-    var q = quotes[Math.floor(Math.random() * quotes.length)];
-    this.anim._bubbleText = q;
-    this.anim._bubbleMode = 'random';
+    if (seqs.length > 0 && Math.random() < 0.5) {
+      this._triggerSequence(Math.floor(Math.random() * seqs.length));
+    } else {
+      this.anim._bubbleText = quotes[Math.floor(Math.random() * quotes.length)];
+      this.anim._bubbleMode = 'random';
+    }
   };
 
   Behavior.prototype._triggerSequence = function (seqIndex) {
@@ -557,6 +602,32 @@
     }
 
     this.wanderDir = dir;
+  };
+
+  // --- Named animation triggers ---
+
+  var ANIM_MAP = {
+    'poke':   function (b) { b._startPoke(); },
+    'sit':    function (b) { b._startSit(); },
+    'idle':   function (b) { b._startIdle(); },
+    'sleep':  function (b) {
+      b.state = State.FALLING_ASLEEP;
+      b.sleepAnimTimer = 0;
+      b.sleepFrameIndex = 0;
+    },
+    'wakeup': function (b) { b.wakeUp(); },
+    'wander': function (b) {
+      var sb = {
+        width:  typeof screen !== 'undefined' ? screen.width  : 1440,
+        height: typeof screen !== 'undefined' ? screen.height : 900,
+      };
+      b._startWander(sb);
+    },
+  };
+
+  Behavior.prototype.triggerAnim = function (name) {
+    var fn = ANIM_MAP[name];
+    if (fn) fn(this);
   };
 
   // --- Click test ---

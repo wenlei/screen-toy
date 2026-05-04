@@ -37,6 +37,17 @@ contextBridge.exposeInMainWorld('screenToy', {
   onApiBubble: (callback: (text: string) => void) => {
     ipcRenderer.on('api-bubble', (_event, text: string) => callback(text));
   },
+  // Quit animation: main → renderer trigger, renderer → main done signal
+  onQuitAnim: (callback: (size: {w: number, h: number}) => void) => {
+    ipcRenderer.on('quit-anim', (_event, size) => callback(size));
+  },
+  quitAnimDone: () => {
+    ipcRenderer.send('quit-anim-done');
+  },
+  // Trigger a named animation on the pet
+  onTriggerAnimation: (callback: (name: string) => void) => {
+    ipcRenderer.on('trigger-animation', (_event, name: string) => callback(name));
+  },
 });
 
 contextBridge.exposeInMainWorld('screenToySettings', {
@@ -61,17 +72,8 @@ contextBridge.exposeInMainWorld('screenToySettings', {
   openDialog: () => {
     ipcRenderer.send('open-dialog');
   },
-  previewBubble: () => {
-    ipcRenderer.send('preview-bubble');
-  },
-  livePreviewStart: () => {
-    ipcRenderer.send('live-preview-start');
-  },
-  livePreviewUpdate: (params: any) => {
-    ipcRenderer.send('live-preview-update', params);
-  },
-  livePreviewStop: () => {
-    ipcRenderer.send('live-preview-stop');
+  triggerAnimation: (name: string) => {
+    ipcRenderer.send('trigger-animation', name);
   },
   getInstalledApps: () => {
     ipcRenderer.send('get-installed-apps');

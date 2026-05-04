@@ -226,6 +226,42 @@
     ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
   }
 
+  // ---- Quit animation sheet (6 cols × 4 rows = 24 frames, 256×256 each) ----
+  var QUIT_COLS = 6, QUIT_ROWS = 4;
+  var QUIT_FRAME_W = 256, QUIT_FRAME_H = 256;
+  var QUIT_FRAME_COUNT = QUIT_COLS * QUIT_ROWS; // 24
+
+  var quitSheet = new Image();
+  var quitLoaded = false;
+  quitSheet.onload = function () { quitLoaded = true; };
+  quitSheet.src = basePath + 'quit_sheet.png';
+
+  // Draw one quit-animation frame into ctx (DISPLAY_W × DISPLAY_H canvas).
+  // Desaturation is applied via ctx.filter so sparkle colours are stripped.
+  function drawQuit(ctx, frameIdx) {
+    var fi = Math.max(0, Math.min(frameIdx, QUIT_FRAME_COUNT - 1));
+    var col = fi % QUIT_COLS;
+    var row = Math.floor(fi / QUIT_COLS);
+    var sx  = col * QUIT_FRAME_W;
+    var sy  = row * QUIT_FRAME_H;
+
+    ctx.clearRect(0, 0, DISPLAY_W, DISPLAY_H);
+
+    if (!quitLoaded) return;
+
+    // Scale to fill canvas while keeping aspect ratio (square frame → DISPLAY_W × DISPLAY_H)
+    var scale = Math.min(DISPLAY_W / QUIT_FRAME_W, DISPLAY_H / QUIT_FRAME_H);
+    var dw = Math.round(QUIT_FRAME_W * scale);
+    var dh = Math.round(QUIT_FRAME_H * scale);
+    var dx = Math.round((DISPLAY_W - dw) / 2);
+    var dy = Math.round((DISPLAY_H - dh) / 2);
+
+    ctx.save();
+    ctx.filter = 'saturate(0)';   // 去色: strip sparkle colours → pure greyscale
+    ctx.drawImage(quitSheet, sx, sy, QUIT_FRAME_W, QUIT_FRAME_H, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
   // ---- Export ----
   window.RobotSprite = {
     WIDTH: DISPLAY_W,
@@ -237,4 +273,152 @@
     draw: drawAirplane,
     loaded: function () { return AIRPLANE.loaded; },
   };
+
+  // Draw a quit frame directly into any ctx at a specified destination rect.
+  // Single-pass scaling (no intermediate spriteCanvas) keeps quality high.
+  function drawQuitDirect(ctx, frameIdx, dx, dy, dw, dh) {
+    if (!quitLoaded) return;
+    var fi  = Math.max(0, Math.min(frameIdx, QUIT_FRAME_COUNT - 1));
+    var col = fi % QUIT_COLS;
+    var row = Math.floor(fi / QUIT_COLS);
+    var sx  = col * QUIT_FRAME_W;
+    var sy  = row * QUIT_FRAME_H;
+    // Maintain aspect ratio (frames are square) centred in the destination rect
+    var scale = Math.min(dw / QUIT_FRAME_W, dh / QUIT_FRAME_H);
+    var rdw = Math.round(QUIT_FRAME_W * scale);
+    var rdh = Math.round(QUIT_FRAME_H * scale);
+    var rdx = dx + Math.round((dw - rdw) / 2);
+    var rdy = dy + Math.round((dh - rdh) / 2);
+    ctx.save();
+    ctx.filter = 'saturate(0)';
+    ctx.drawImage(quitSheet, sx, sy, QUIT_FRAME_W, QUIT_FRAME_H, rdx, rdy, rdw, rdh);
+    ctx.restore();
+  }
+
+  // ---- Entrance animation sheet (6 cols × 4 rows = 24 frames, 256×256 each) ----
+  var ENTER_COLS = 6, ENTER_FRAME_W = 256, ENTER_FRAME_H = 256;
+  var ENTER_FRAME_COUNT = 24;
+
+  var enterSheet = new Image();
+  var enterLoaded = false;
+  enterSheet.onload = function () { enterLoaded = true; };
+  enterSheet.src = basePath + 'enter_sheet.png';
+
+  function drawEnterDirect(ctx, frameIdx, dx, dy, dw, dh) {
+    if (!enterLoaded) return;
+    var fi  = Math.max(0, Math.min(frameIdx, ENTER_FRAME_COUNT - 1));
+    var col = fi % ENTER_COLS;
+    var row = Math.floor(fi / ENTER_COLS);
+    var sx  = col * ENTER_FRAME_W;
+    var sy  = row * ENTER_FRAME_H;
+    var scale = Math.min(dw / ENTER_FRAME_W, dh / ENTER_FRAME_H);
+    var rdw = Math.round(ENTER_FRAME_W * scale);
+    var rdh = Math.round(ENTER_FRAME_H * scale);
+    var rdx = dx + Math.round((dw - rdw) / 2);
+    var rdy = dy + Math.round((dh - rdh) / 2);
+    // No saturate filter — keep the door's purple colour
+    ctx.drawImage(enterSheet, sx, sy, ENTER_FRAME_W, ENTER_FRAME_H, rdx, rdy, rdw, rdh);
+  }
+
+  window.EnterSprite = {
+    drawDirect:  drawEnterDirect,
+    loaded:      function () { return enterLoaded; },
+    FRAME_COUNT: ENTER_FRAME_COUNT,
+  };
+
+  window.QuitSprite = {
+    draw:        drawQuit,
+    drawDirect:  drawQuitDirect,
+    loaded:      function () { return quitLoaded; },
+    FRAME_COUNT: QUIT_FRAME_COUNT,
+  };
+
+  // ---- Twist / Detwist animation sheets (6 cols × 4 rows = 24 frames, 256×256 each) ----
+  var TWIST_COLS = 6, TWIST_FRAME_W = 256, TWIST_FRAME_H = 256;
+  var TWIST_FRAME_COUNT = 24;
+
+  var twistSheet = new Image();
+  var twistLoaded = false;
+  twistSheet.onload = function () { twistLoaded = true; };
+  twistSheet.src = basePath + 'twist_sheet.png';
+
+  var detwistSheet = new Image();
+  var detwistLoaded = false;
+  detwistSheet.onload = function () { detwistLoaded = true; };
+  detwistSheet.src = basePath + 'detwist_sheet.png';
+
+  function drawTwistDirect(ctx, frameIdx, dx, dy, dw, dh) {
+    if (!twistLoaded) return;
+    var fi  = Math.max(0, Math.min(frameIdx, TWIST_FRAME_COUNT - 1));
+    var col = fi % TWIST_COLS;
+    var row = Math.floor(fi / TWIST_COLS);
+    var sx  = col * TWIST_FRAME_W;
+    var sy  = row * TWIST_FRAME_H;
+    var scale = Math.min(dw / TWIST_FRAME_W, dh / TWIST_FRAME_H);
+    var rdw = Math.round(TWIST_FRAME_W * scale);
+    var rdh = Math.round(TWIST_FRAME_H * scale);
+    var rdx = dx + Math.round((dw - rdw) / 2);
+    var rdy = dy + Math.round((dh - rdh) / 2);
+    ctx.drawImage(twistSheet, sx, sy, TWIST_FRAME_W, TWIST_FRAME_H, rdx, rdy, rdw, rdh);
+  }
+
+  function drawDetwistDirect(ctx, frameIdx, dx, dy, dw, dh) {
+    if (!detwistLoaded) return;
+    var fi  = Math.max(0, Math.min(frameIdx, TWIST_FRAME_COUNT - 1));
+    var col = fi % TWIST_COLS;
+    var row = Math.floor(fi / TWIST_COLS);
+    var sx  = col * TWIST_FRAME_W;
+    var sy  = row * TWIST_FRAME_H;
+    var scale = Math.min(dw / TWIST_FRAME_W, dh / TWIST_FRAME_H);
+    var rdw = Math.round(TWIST_FRAME_W * scale);
+    var rdh = Math.round(TWIST_FRAME_H * scale);
+    var rdx = dx + Math.round((dw - rdw) / 2);
+    var rdy = dy + Math.round((dh - rdh) / 2);
+    ctx.drawImage(detwistSheet, sx, sy, TWIST_FRAME_W, TWIST_FRAME_H, rdx, rdy, rdw, rdh);
+  }
+
+  window.TwistSprite = {
+    drawDirect:  drawTwistDirect,
+    loaded:      function () { return twistLoaded; },
+    FRAME_COUNT: TWIST_FRAME_COUNT,
+  };
+
+  window.DetwistSprite = {
+    drawDirect:  drawDetwistDirect,
+    loaded:      function () { return detwistLoaded; },
+    FRAME_COUNT: TWIST_FRAME_COUNT,
+  };
+
+  // ---- Hula animation sheets (6 cols × 4 rows = 24 frames, 256×256 each) ----
+  // Three sequential phases: wear skirt → dance → remove skirt
+  var HULA_COLS = 6, HULA_FRAME_W = 256, HULA_FRAME_H = 256;
+  var HULA_FRAME_COUNT = 24;
+
+  function makeHulaSprite(filename) {
+    var sheet = new Image();
+    var loaded = false;
+    sheet.onload = function () { loaded = true; };
+    sheet.src = basePath + filename;
+
+    function drawDirect(ctx, frameIdx, dx, dy, dw, dh) {
+      if (!loaded) return;
+      var fi  = Math.max(0, Math.min(frameIdx, HULA_FRAME_COUNT - 1));
+      var col = fi % HULA_COLS;
+      var row = Math.floor(fi / HULA_COLS);
+      var sx  = col * HULA_FRAME_W;
+      var sy  = row * HULA_FRAME_H;
+      var scale = Math.min(dw / HULA_FRAME_W, dh / HULA_FRAME_H);
+      var rdw = Math.round(HULA_FRAME_W * scale);
+      var rdh = Math.round(HULA_FRAME_H * scale);
+      var rdx = dx + Math.round((dw - rdw) / 2);
+      var rdy = dy + Math.round((dh - rdh) / 2);
+      ctx.drawImage(sheet, sx, sy, HULA_FRAME_W, HULA_FRAME_H, rdx, rdy, rdw, rdh);
+    }
+
+    return { drawDirect: drawDirect, loaded: function () { return loaded; }, FRAME_COUNT: HULA_FRAME_COUNT };
+  }
+
+  window.HulaWearSprite   = makeHulaSprite('hula_wear_sheet.png');
+  window.HulaDanceSprite  = makeHulaSprite('hula_dance_sheet.png');
+  window.HulaRemoveSprite = makeHulaSprite('hula_remove_sheet.png');
 })();

@@ -1,6 +1,6 @@
 # Screen Toy
 
-macOS 桌面宠物 — 一只在屏幕上闲逛的小狗，点击弹出思维气泡菜单，可快捷打开应用。
+macOS 桌面宠物 — 一只在屏幕上闲逛的刘看山，点击弹出思维气泡菜单，可快捷打开应用。
 
 ## 运行
 
@@ -28,7 +28,7 @@ src/
     └── settings.html/js# 参数设置面板
 
 src/assets/doodles/
-├── dog/                # 狗狗精灵图（17280×2400，4 方向 × 24 帧 × 720×600）
+├── dog/                # 北极狐精灵图（17280×2400，4 方向 × 24 帧 × 720×600）
 ├── thinking_bubble/    # 思维气泡资产（sheet.png 31 帧 + adaptive_base.png）
 ├── menu_deco/          # 菜单装饰素材
 └── paper_plane/        # 纸飞机动画

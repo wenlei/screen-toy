@@ -21,12 +21,15 @@
   var MENU_LEFT      = 45;
 
   // ── State ─────────────────────────────────────────────────────────────────
-  var apps        = [];
-  var windowH     = BASE_WIN_H;
-  var topPad      = 28;
-  var leftPad     = 20;
-  var cloudOffset = 28;
-  var baseLoaded  = false;
+  var apps          = [];
+  var windowH       = BASE_WIN_H;
+  var topPad        = 28;
+  var leftPad       = 20;
+  var cloudOffset   = 28;
+  var baseLoaded    = false;
+  var foxHeadY      = null;  // fox head Y relative to window top (normal mode)
+  var flip          = false; // true → cloud is below fox, tail at top
+  var foxFeetY_state = null; // fox feet Y relative to window top (flip mode)
 
   // ── Image ─────────────────────────────────────────────────────────────────
   var baseImg = new Image();
@@ -54,6 +57,9 @@
         if (data.showDebug    !== undefined) showDebug      = data.showDebug;
         if (data.clipX        !== undefined) CLIP_X         = data.clipX;
         if (data.clipYTop     !== undefined) CLIP_Y_TOP     = data.clipYTop;
+        if (data.foxHeadY     !== undefined) foxHeadY        = data.foxHeadY;
+        if (data.flip         !== undefined) flip            = data.flip;
+        if (data.foxFeetY     !== undefined) foxFeetY_state  = data.foxFeetY;
       }
       maybeShow();
     });
@@ -95,21 +101,45 @@
                            L.ox,   CANVAS_TOP_PAD + L.dTop + L.dStr, L.dW, Math.round(SLICE_BOT_H * L.CS));
   }
 
-  // ── Bubble-rising animation ───────────────────────────────────────────────
-  // Small circle (source center: x=81, y=357) appears first, then large circle
-  // (source center: x=80, y=316), then the full cloud body.
+  // Full adaptive draw, vertically flipped — tail circles appear at the TOP.
+  function drawAdaptiveFlipped() {
+    ctx.save();
+    ctx.translate(0, canvas.height);
+    ctx.scale(1, -1);
+    drawAdaptive();
+    ctx.restore();
+  }
+
+  // In flip mode the cloud content area (top-slice of source) appears at the BOTTOM of the
+  // canvas.  Its visual top = canvas.height − L.botY.  Menu items are placed there + MENU_TOP.
+  function menuTopFlip() {
+    var L = getLayout();
+    return Math.round(topPad + (canvas.height - L.botY) + MENU_TOP * CLOUD_SCALE);
+  }
+
+  // ── Bubble animation ─────────────────────────────────────────────────────
+  // Source circle centers: small x=81 y=357, large x=80 y=316 (in source image coords).
+  //
+  // FLIP MODE  (cloud below fox, tail at TOP of window)
+  //   Circles start at the fox-feet position and fall downward to the tail targets,
+  //   then the cloud expands below them.  Small circle leads; large follows at 40 %.
+  //
+  // NORMAL MODE (cloud above fox, tail at BOTTOM of window)
+  //   Original step-by-step static sequence; optional float-up from foxHeadY
+  //   when the fox is near the top of the screen.
 
   function startAnimation() {
     var L  = getLayout();
     var CS = L.CS;
 
-    // Canvas-space coordinates of the two tail circles
     var smallCX = L.ox + Math.round(81 * CS);
-    var smallCY = L.botY + Math.round((357 - SLICE_TOP_H) * CS);
     var largeCX = L.ox + Math.round(80 * CS);
-    var largeCY = L.botY + Math.round((316 - SLICE_TOP_H) * CS);
     var rSmall  = Math.max(5, Math.round(11 * CS));
     var rLarge  = Math.max(8, Math.round(17 * CS));
+
+    // Positions in original (non-flipped) canvas draw space
+    var defaultSmallCY = L.botY + Math.round((357 - SLICE_TOP_H) * CS);
+    var defaultLargeCY = L.botY + Math.round((316 - SLICE_TOP_H) * CS);
 
     function dot(cx, cy, r) {
       ctx.beginPath();
@@ -121,24 +151,130 @@
       ctx.stroke();
     }
 
-    // Step 0 (immediate): small circle only
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    dot(smallCX, smallCY, rSmall);
+    function showCloud() {
+      if (flip) { drawAdaptiveFlipped(); } else { drawAdaptive(); }
+      buildMenu();
+      menuEl.classList.add('visible');
+      if (showDebug) renderDebugBoxes();
+    }
 
-    setTimeout(function () {
-      // Step 1 (+220 ms): large circle appears above small
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dot(smallCX, smallCY, rSmall);
-      dot(largeCX, largeCY, rLarge);
+    if (flip) {
+      // ── Flip mode: circles fall from fox feet downward ────────────────────
+      // In the flipped canvas the circles appear at visual y = canvas.height − defaultCY.
+      // We draw animation dots at those VISUAL y coords (no ctx transform needed here).
+      var targetSmall = canvas.height - defaultSmallCY;   // ≈ top-of-cloud area
+      var targetLarge = canvas.height - defaultLargeCY;   // slightly below small
 
-      setTimeout(function () {
-        // Step 2 (+440 ms): full cloud + menu
-        drawAdaptive();
-        buildMenu();
-        menuEl.classList.add('visible');
-        if (showDebug) renderDebugBoxes();
-      }, 220);
-    }, 220);
+      // Start: fox feet in canvas-local coords.
+      // When feetInCanvas ≤ targetSmall the feet are above (or at) the circles – start
+      // 20 px above the feet for a slightly more visible drop while still appearing near them.
+      // When feetInCanvas > targetSmall the window is clamped (fox too high) – fall back to
+      // starting 80 px above the target circles so the animation is clearly visible.
+      var feetInCanvas = (foxFeetY_state !== null) ? (foxFeetY_state - topPad) : null;
+      var startCY;
+      if (feetInCanvas !== null && feetInCanvas <= targetSmall) {
+        startCY = Math.max(0, feetInCanvas - 20);
+      } else {
+        startCY = Math.max(0, targetSmall - 80);
+      }
+
+      var ANIM_MS    = 300;
+      var LARGE_ONSET = 0.40;  // large circle joins at 40 % of animation
+      var animStart  = null;
+      var done       = false;
+
+      function easeOut(t) { return 1 - (1 - t) * (1 - t); }
+
+      function frame(ts) {
+        if (done) return;
+        if (!animStart) animStart = ts;
+        var elapsed = ts - animStart;
+        var t  = Math.min(1, elapsed / ANIM_MS);
+        var te = easeOut(t);
+
+        var smallCY = Math.round(startCY + (targetSmall - startCY) * te);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        dot(smallCX, smallCY, rSmall);
+
+        if (t >= LARGE_ONSET) {
+          var tl  = (t - LARGE_ONSET) / (1 - LARGE_ONSET);
+          var tle = easeOut(Math.min(1, tl));
+          var largeCY = Math.round(startCY + (targetLarge - startCY) * tle);
+          dot(largeCX, largeCY, rLarge);
+        }
+
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          done = true;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          dot(smallCX, targetSmall, rSmall);
+          dot(largeCX, targetLarge, rLarge);
+          setTimeout(showCloud, 120);
+        }
+      }
+
+      requestAnimationFrame(frame);
+
+    } else {
+      // ── Normal mode: static sequence, optional float-up from foxHeadY ─────
+      var foxInCanvas = (foxHeadY !== null) ? (foxHeadY - topPad) : null;
+      var needsFloat  = foxInCanvas !== null && foxInCanvas < defaultSmallCY;
+
+      var smallTargetCY, largeTargetCY;
+      if (needsFloat) {
+        smallTargetCY = Math.max(CANVAS_TOP_PAD + Math.round(40 * CS), foxInCanvas);
+        largeTargetCY = Math.max(CANVAS_TOP_PAD + Math.round(10 * CS), smallTargetCY - Math.round(35 * CS));
+      } else {
+        smallTargetCY = defaultSmallCY;
+        largeTargetCY = defaultLargeCY;
+      }
+
+      if (!needsFloat) {
+        // Step 0: small circle only
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        dot(smallCX, smallTargetCY, rSmall);
+        setTimeout(function () {
+          // Step 1 (+220 ms): large circle joins
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          dot(smallCX, smallTargetCY, rSmall);
+          dot(largeCX, largeTargetCY, rLarge);
+          setTimeout(showCloud, 220);
+        }, 220);
+      } else {
+        // Float-up from foxHeadY
+        var ANIM_MS2 = 320;
+        var animStart2 = null;
+        var done2 = false;
+        function easeOut2(t) { return 1 - (1 - t) * (1 - t); }
+        function frame2(ts) {
+          if (done2) return;
+          if (!animStart2) animStart2 = ts;
+          var elapsed = ts - animStart2;
+          var t  = Math.min(1, elapsed / ANIM_MS2);
+          var te = easeOut2(t);
+          var smallCY2 = Math.round(foxInCanvas + (smallTargetCY - foxInCanvas) * te);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          dot(smallCX, smallCY2, rSmall);
+          if (t >= 0.35) {
+            var tl = (t - 0.35) / 0.65;
+            var tle = easeOut2(Math.min(1, tl));
+            var largeCY2 = Math.round(foxInCanvas + (largeTargetCY - foxInCanvas) * tle);
+            dot(largeCX, largeCY2, rLarge);
+          }
+          if (t < 1) {
+            requestAnimationFrame(frame2);
+          } else {
+            done2 = true;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dot(smallCX, smallTargetCY, rSmall);
+            dot(largeCX, largeTargetCY, rLarge);
+            setTimeout(showCloud, 120);
+          }
+        }
+        requestAnimationFrame(frame2);
+      }
+    }
   }
 
   // ── Show once image and data are ready ───────────────────────────────────
@@ -157,8 +293,10 @@
     canvas.height = windowH + CANVAS_TOP_PAD + CANVAS_BOT_PAD;
     canvas.style.top  = topPad  + 'px';
     canvas.style.left = leftPad + 'px';
-    menuEl.style.top  = Math.round(MENU_TOP  * CLOUD_SCALE + topPad  + CANVAS_TOP_PAD) + 'px';
-    menuEl.style.left = Math.round(MENU_LEFT * CLOUD_SCALE + leftPad + cloudOffset)     + 'px';
+    menuEl.style.top  = flip
+      ? menuTopFlip() + 'px'
+      : Math.round(MENU_TOP * CLOUD_SCALE + topPad + CANVAS_TOP_PAD) + 'px';
+    menuEl.style.left = Math.round(MENU_LEFT * CLOUD_SCALE + leftPad + cloudOffset) + 'px';
     startAnimation();
   }
 
@@ -181,9 +319,11 @@
     canvas.height = windowH + CANVAS_TOP_PAD + CANVAS_BOT_PAD;
     canvas.style.top  = topPad  + 'px';
     canvas.style.left = leftPad + 'px';
-    menuEl.style.top  = Math.round(MENU_TOP  * CLOUD_SCALE + topPad  + CANVAS_TOP_PAD) + 'px';
-    menuEl.style.left = Math.round(MENU_LEFT * CLOUD_SCALE + leftPad + cloudOffset)     + 'px';
-    drawAdaptive();
+    menuEl.style.top  = flip
+      ? menuTopFlip() + 'px'
+      : Math.round(MENU_TOP * CLOUD_SCALE + topPad + CANVAS_TOP_PAD) + 'px';
+    menuEl.style.left = Math.round(MENU_LEFT * CLOUD_SCALE + leftPad + cloudOffset) + 'px';
+    if (flip) { drawAdaptiveFlipped(); } else { drawAdaptive(); }
     buildMenu();
     menuEl.classList.add('visible');
     if (showDebug) renderDebugBoxes();
