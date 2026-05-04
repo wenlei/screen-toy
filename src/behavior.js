@@ -347,29 +347,38 @@
 
   // ---- Bubble logic ----
 
+  var SLEEP_FPS = 8;
+  var SLEEP_TOTAL = 24;
+
   Behavior.prototype._updateFallingAsleep = function (dt) {
-    var FPS = 8, TOTAL = 24;
     this.sleepAnimTimer += dt;
-    this.sleepFrameIndex = Math.min(TOTAL - 1, Math.floor(this.sleepAnimTimer * FPS));
+    var frame = Math.floor(this.sleepAnimTimer * SLEEP_FPS);
+    this.sleepFrameIndex = Math.min(SLEEP_TOTAL - 1, frame);
     this.anim.sleepFrame = this.sleepFrameIndex;
+    this.anim.sleepProgress = this.sleepFrameIndex / (SLEEP_TOTAL - 1); // 0→1
     this.anim.bodyBob = 0; this.anim.squish = 0;
-    if (this.sleepFrameIndex >= TOTAL - 1) {
+    if (frame >= SLEEP_TOTAL) {
       this.state = State.SLEEPING;
+      this.sleepAnimTimer = 0;
     }
   };
 
-  Behavior.prototype._updateSleeping = function () {
-    this.anim.sleepFrame = 23;
+  Behavior.prototype._updateSleeping = function (dt) {
+    this.sleepAnimTimer += dt;
+    this.sleepFrameIndex = Math.floor(this.sleepAnimTimer * SLEEP_FPS) % SLEEP_TOTAL;
+    this.anim.sleepFrame = this.sleepFrameIndex;
+    this.anim.sleepProgress = 1.0;
     this.anim.bodyBob = 0; this.anim.squish = 0;
   };
 
   Behavior.prototype._updateWakingUp = function (dt) {
-    var FPS = 8, TOTAL = 24;
     this.sleepAnimTimer += dt;
-    this.sleepFrameIndex = Math.min(TOTAL - 1, Math.floor(this.sleepAnimTimer * FPS));
+    var frame = Math.floor(this.sleepAnimTimer * SLEEP_FPS);
+    this.sleepFrameIndex = Math.min(SLEEP_TOTAL - 1, frame);
     this.anim.sleepFrame = this.sleepFrameIndex;
+    this.anim.sleepProgress = 1.0 - this.sleepFrameIndex / (SLEEP_TOTAL - 1); // 1→0
     this.anim.bodyBob = 0; this.anim.squish = 0;
-    if (this.sleepFrameIndex >= TOTAL - 1) {
+    if (frame >= SLEEP_TOTAL) {
       this._startIdle();
     }
   };

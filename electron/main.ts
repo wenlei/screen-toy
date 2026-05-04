@@ -609,28 +609,16 @@ function buildTrayMenu() {
 }
 
 function createTray() {
-  const size = 16;
-  const buf = Buffer.alloc(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const i = (y * size + x) * 4;
-      const cx = 8, cy = 8, r = 7;
-      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-      if (dist <= r) {
-        buf[i] = 0x58; buf[i + 1] = 0x5B; buf[i + 2] = 0x70; buf[i + 3] = 0xFF;
-      }
-      if ((x === 5 || x === 6) && (y === 6 || y === 7)) {
-        buf[i] = 0xCD; buf[i + 1] = 0xD6; buf[i + 2] = 0xF4; buf[i + 3] = 0xFF;
-      }
-      if ((x === 9 || x === 10) && (y === 6 || y === 7)) {
-        buf[i] = 0xCD; buf[i + 1] = 0xD6; buf[i + 2] = 0xF4; buf[i + 3] = 0xFF;
-      }
-      if (x >= 5 && x <= 10 && y === 11) {
-        buf[i] = 0xCB; buf[i + 1] = 0xA6; buf[i + 2] = 0xF7; buf[i + 3] = 0xFF;
-      }
-    }
+  const iconPath = path.join(__dirname, '..', '..', 'src', 'assets', 'tray-icon.png');
+  const icon2xPath = path.join(__dirname, '..', '..', 'src', 'assets', 'tray-icon@2x.png');
+  let icon: Electron.NativeImage;
+  if (fs.existsSync(icon2xPath)) {
+    icon = nativeImage.createFromPath(icon2xPath);
+    icon = icon.resize({ width: 16, height: 16 });
+  } else {
+    icon = nativeImage.createFromPath(iconPath);
   }
-  const icon = nativeImage.createFromBuffer(buf, { width: size, height: size });
+  icon.setTemplateImage(true);
   tray = new Tray(icon);
   tray.setToolTip('Screen Toy');
   tray.setContextMenu(buildTrayMenu());

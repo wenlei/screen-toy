@@ -66,10 +66,16 @@
   // ---- Sleep / wakeup sheets ----
   var SLEEP_COLS = 6, SLEEP_FRAME_W = 255, SLEEP_FRAME_H = 256;
 
+  // Three separate sheets: intro (play once), loop (repeat), outro (play once)
   var sleepImg = new Image();
   var sleepLoaded = false;
   sleepImg.onload = function () { sleepLoaded = true; };
   sleepImg.src = basePath + 'sleep_sheet.png';
+
+  var sleepLoopImg = new Image();
+  var sleepLoopLoaded = false;
+  sleepLoopImg.onload = function () { sleepLoopLoaded = true; };
+  sleepLoopImg.src = basePath + 'sleep_loop_sheet.png';
 
   var wakeImg = new Image();
   var wakeLoaded = false;
@@ -159,8 +165,8 @@
     // Sleep / wakeup: draw from dedicated sheet, skip normal dog draw
     var _st = p._state;
     if (_st === 'falling_asleep' || _st === 'sleeping' || _st === 'waking_up') {
-      var swSheet = (_st === 'waking_up') ? wakeImg : sleepImg;
-      var swReady = (_st === 'waking_up') ? wakeLoaded : sleepLoaded;
+      var swSheet = _st === 'waking_up' ? wakeImg : (_st === 'sleeping' ? sleepLoopImg : sleepImg);
+      var swReady = _st === 'waking_up' ? wakeLoaded : (_st === 'sleeping' ? sleepLoopLoaded : sleepLoaded);
       if (swReady && p.sleepFrame !== undefined) {
         var swRect = getSleepWakeRect(p.sleepFrame);
         var swAspect = swRect.w / swRect.h;

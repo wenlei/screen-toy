@@ -73,10 +73,10 @@
     ctx.lineTo(tipX, tipY);                         // left edge → tip
     ctx.closePath();                                 // tip → right edge (back to a2)
 
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#F7F7F8';
     ctx.fill();
-    ctx.strokeStyle = '#1e1e1e';
-    ctx.lineWidth   = 1.5;
+    ctx.strokeStyle = '#D0D0D4';
+    ctx.lineWidth   = 1.2;
     ctx.stroke();
   }
 
