@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { exec, execSync } from 'child_process';
 
 let win: BrowserWindow | null = null;
+let quitPending = false; // true once quit animation has been triggered
 let settingsWin: BrowserWindow | null = null;
 let menuWin: BrowserWindow | null = null;
 let menuPreviewMode = false;
@@ -431,6 +432,38 @@ ipcMain.on('get-installed-apps', (_event) => {
   }
 });
 
+// ── Quit with animation ───────────────────────────────────────────────────
+function triggerQuit() {
+  if (quitPending) return;
+  quitPending = true;
+  closeMenuWindow();
+
+  if (win && !win.isDestroyed()) {
+    // Expand window to give the smoke-cloud animation more room
+    const QUIT_W = 105, QUIT_H = 105;
+    const [wx, wy] = win.getPosition();
+    const [ww, wh] = win.getSize();
+    const newX = Math.max(0, Math.round(wx + ww / 2 - QUIT_W / 2));
+    const newY = Math.max(0, Math.round(wy + wh / 2 - QUIT_H / 2));
+    win.setBounds({ x: newX, y: newY, width: QUIT_W, height: QUIT_H });
+    win.webContents.send('quit-anim', { w: QUIT_W, h: QUIT_H });
+    // Safety fallback: force-quit after 5 s if renderer never replies
+    setTimeout(() => app.quit(), 5000);
+  } else {
+    app.quit();
+  }
+}
+
+ipcMain.on('quit-anim-done', () => {
+  app.quit();
+});
+
+ipcMain.on('trigger-animation', (_event, name: string) => {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('trigger-animation', name);
+  }
+});
+
 function createSettingsWindow() {
   if (settingsWin && !settingsWin.isDestroyed()) {
     settingsWin.focus();
@@ -497,17 +530,61 @@ function createMenuWindow(screenX: number, screenY: number) {
   const MENU_H   = BASE_H + stretch;
 
   // ── Position ─────────────────────────────────────────────────────────────
-  const { width: screenW } = screen.getPrimaryDisplay().workAreaSize;
-  const MENU_BAR_H = 25;
+  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
+  const MENU_BAR_H     = 25;
   const CANVAS_BOT_PAD = currentSettings.bubbleCanvasBotPad ?? 30;
+  const FOX_HEAD_OFFSET = 20;  // fox head ≈ screenY − 20
+  const FOX_FEET_OFFSET = 20;  // fox feet ≈ screenY + 20
+  const FINE_TUNE = currentSettings.bubbleOffsetY ?? 0;
 
-  // Pin tail tip to 10px above fox head.
-  // Fox head ≈ screenY(center) - 20px (sprite geometry: 70px tall, head at ~20% from top)
-  // Tail tip bottom (source row 367) in window ≈ topPad + CANVAS_TOP_PAD + MENU_H * CS
-  const FOX_HEAD_OFFSET = 20; // px above fox center where head is
-  const FINE_TUNE  = currentSettings.bubbleOffsetY ?? 0; // user fine-tune (positive = higher)
-  const tailWindowY = (TOP_PAD + CANVAS_EXTRA_TOP) + CANVAS_TOP_PAD_VAL + Math.round(MENU_H * CLOUD_SCALE);
-  const menuY = Math.max(MENU_BAR_H, Math.round(screenY - FOX_HEAD_OFFSET) - 20 - tailWindowY - FINE_TUNE);
+  // First compute the ideal Y for normal mode (cloud above fox).
+  // Flip mode is used when the ideal position would be clamped by the menu bar.
+  const tailWindowY_normal = (TOP_PAD + CANVAS_EXTRA_TOP) + CANVAS_TOP_PAD_VAL + Math.round(MENU_H * CLOUD_SCALE);
+  const idealMenuY = Math.round(screenY - FOX_HEAD_OFFSET) - 20 - tailWindowY_normal - FINE_TUNE;
+  const useFlip = idealMenuY < MENU_BAR_H;  // cloud would hit the menu bar → flip below fox
+
+  let menuY: number;
+  let topPadAdjusted: number;
+  let foxFeetY: number | undefined;
+  let foxHeadY_ipc: number | undefined;
+  let menuH_send: number;
+  let doFlip: boolean;
+
+  if (useFlip) {
+    // ── Flip mode: cloud below fox, tail circles at window top ────────────────
+    // Ensure the cloud is tall enough for all menu items.
+    // Usable area (stretch + top-slice) = (MENU_H − SLICE_BOT_H) × CS
+    // We need that ≥ contentH + 20 px buffer.
+    const SLICE_BOT_H_val = 184;
+    const MENU_H_flip = Math.max(
+      MENU_H,
+      Math.ceil((contentH + 20) / CLOUD_SCALE) + SLICE_BOT_H_val,
+    );
+    topPadAdjusted = TOP_PAD + CANVAS_EXTRA_TOP;
+    const SLICE_TOP_H_val = 184;
+    const dTop_flip = Math.round(SLICE_TOP_H_val * CLOUD_SCALE);
+    const dStr_flip = Math.round((MENU_H_flip - BASE_H) * CLOUD_SCALE);
+    // tailWindowY_flip = distance from window top to the small tail circle (source y=357).
+    // In the flipped canvas the circle ends up at topPad + (canvas.height − normalSmallCY).
+    // canvas.height = MENU_H_flip + CANVAS_TOP_PAD + CANVAS_BOT_PAD, but CANVAS_TOP_PAD
+    // cancels with normalSmallCY's leading CANVAS_TOP_PAD, leaving:
+    //   topPad + MENU_H_flip + CANVAS_BOT_PAD − dTop − dStr − round((357−184)·CS)
+    const tailWindowY_flip = topPadAdjusted + MENU_H_flip + CANVAS_BOT_PAD
+                             - dTop_flip - dStr_flip
+                             - Math.round((357 - SLICE_TOP_H_val) * CLOUD_SCALE);
+    menuY      = Math.round(screenY + FOX_FEET_OFFSET) + 10 - tailWindowY_flip - FINE_TUNE;
+    // foxFeetY is computed after menuYClamped (below) so the clamped position is used.
+    menuH_send = MENU_H_flip;
+    doFlip     = true;
+  } else {
+    // ── Normal mode: cloud above fox ─────────────────────────────────────────
+    menuY        = Math.max(MENU_BAR_H, idealMenuY);
+    const clampOffset  = menuY - idealMenuY;
+    topPadAdjusted     = Math.max(0, TOP_PAD + CANVAS_EXTRA_TOP - clampOffset);
+    foxHeadY_ipc = Math.round(screenY - 20) - menuY;
+    menuH_send   = MENU_H;
+    doFlip       = false;
+  }
 
   // Align tail X to fox center.
   // Small tail circle center ≈ source x=81. At CS=0.85, rendered x = cloudOffset + 81*CS
@@ -515,16 +592,18 @@ function createMenuWindow(screenX: number, screenY: number) {
   const menuX = Math.max(0, Math.min(Math.round(screenX - tailXInWindow), screenW - CANVAS_W - LEFT_PAD - RIGHT_PAD));
 
   // ── Window height = above-canvas + canvas-height + below-canvas ──────────
-  // above-canvas: TOP_PAD + CANVAS_EXTRA_TOP (= topPad sent to menu.js)
-  // canvas-height: MENU_H + CANVAS_TOP_PAD + CANVAS_BOT_PAD  (must match menu.js)
-  // below-canvas: TAIL_EXTRA
-  const WIN_H = (TOP_PAD + CANVAS_EXTRA_TOP) + MENU_H + CANVAS_TOP_PAD_VAL + CANVAS_BOT_PAD + TAIL_EXTRA;
+  const WIN_H_raw = topPadAdjusted + menuH_send + CANVAS_TOP_PAD_VAL + CANVAS_BOT_PAD + TAIL_EXTRA;
+  // Clamp so window doesn't run off the screen edges
+  const menuYClamped = Math.max(MENU_BAR_H, menuY);
+  const WIN_H = Math.min(WIN_H_raw, screenH - menuYClamped);
+  // foxFeetY must be relative to the *clamped* window position.
+  if (doFlip) foxFeetY = Math.round(screenY + FOX_FEET_OFFSET) - menuYClamped;
 
   menuWin = new BrowserWindow({
     width:  CANVAS_W + LEFT_PAD + RIGHT_PAD,
     height: WIN_H,
     x: menuX,
-    y: menuY,
+    y: menuYClamped,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -549,17 +628,19 @@ function createMenuWindow(screenX: number, screenY: number) {
         iconUrl: getAppIconDataURL(a.id, a.appPath || ''),
       }));
       menuWin?.webContents.send('menu-apps', {
-        apps: appsToSend, windowH: MENU_H, topPad: TOP_PAD + CANVAS_EXTRA_TOP, leftPad: LEFT_PAD,
+        apps: appsToSend, windowH: menuH_send, topPad: topPadAdjusted, leftPad: LEFT_PAD,
         cloudOffset: CLOUD_OFFSET, tailExtra: TAIL_EXTRA, cloudScale: CLOUD_SCALE,
         canvasTopPad: CANVAS_TOP_PAD_VAL,
         canvasBotPad: CANVAS_BOT_PAD,
         drawOffsetX:  currentSettings.bubbleDrawOffsetX ?? 0,
         menuLeft:     currentSettings.bubbleMenuLeft    ?? 100,
-        menuTop:      currentSettings.bubbleMenuTop     ?? 90,
+        menuTop:      doFlip ? -54 : (currentSettings.bubbleMenuTop ?? 90),
         showDebug:    !!currentSettings.showBubbleDebug,
         clipX:        currentSettings.bubbleClipX        ?? 0,
         clipYTop:     currentSettings.bubbleClipYTop     ?? 0,
-        foxHeadY:     Math.round(screenY - 20) - menuY,  // fox head y relative to menu window top
+        flip:         doFlip,
+        foxFeetY:     foxFeetY,        // flip mode: fox feet y relative to menu window top
+        foxHeadY:     foxHeadY_ipc,    // normal mode: fox head y relative to menu window top
       });
     }, 150);
   });
@@ -603,7 +684,7 @@ function buildTrayMenu() {
     { type: 'separator' },
     {
       label: 'Quit',
-      click: () => app.quit(),
+      click: () => triggerQuit(),
     },
   ]);
 }

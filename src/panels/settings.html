@@ -97,6 +97,25 @@
   .actions { display: flex; gap: 8px; margin-top: 4px; }
   .actions.btns { justify-content: flex-end; margin-top: 16px; }
 
+  .anim-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .anim-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 8px; border-radius: 8px;
+    border: 1px solid #ddd; cursor: pointer;
+    background: #fff; color: #444;
+    font-size: 11px; text-align: center;
+    transition: all 0.12s; line-height: 1.2;
+    -webkit-app-region: no-drag;
+  }
+  .anim-btn:hover { background: #f0f0f0; border-color: #aaa; }
+  .anim-btn.playing { background: #f0f8e8; border-color: #8bc34a; color: #4a7c1f; }
+  .anim-btn .anim-icon { font-size: 20px; }
+
   input, button, select, textarea, a, .app-item, .btn, .del, .add-btn {
     -webkit-app-region: no-drag;
   }
@@ -172,107 +191,11 @@
 <hr>
 
 <div class="group">
-  <label>气泡缩放比例</label>
-  <div class="row">
-    <input type="range" id="bubbleScale" min="0.5" max="1.5" value="0.85" step="0.05">
-    <span class="val" id="bubbleScaleVal">0.85</span>
-  </div>
+  <label>激活动画</label>
+  <div class="anim-grid" id="animGrid"></div>
 </div>
 
-<div class="group">
-  <label>气泡垂直微调 (正数偏高/负数偏低)</label>
-  <div class="row">
-    <input type="range" id="bubbleOffsetY" min="-80" max="80" value="0" step="1">
-    <span class="val" id="bubbleOffsetYVal">135</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>气泡左右边距</label>
-  <div class="row">
-    <input type="range" id="bubbleCloudOffset" min="10" max="150" value="74" step="2">
-    <span class="val" id="bubbleCloudOffsetVal">74</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>气泡顶部间距</label>
-  <div class="row">
-    <input type="range" id="bubbleCanvasTopPad" min="0" max="120" value="55" step="2">
-    <span class="val" id="bubbleCanvasTopPadVal">55</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>气泡底部间距</label>
-  <div class="row">
-    <input type="range" id="bubbleCanvasBotPad" min="0" max="120" value="30" step="2">
-    <span class="val" id="bubbleCanvasBotPadVal">30</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>窗口扩展边距</label>
-  <div class="row">
-    <input type="range" id="bubbleExpand" min="0" max="600" value="50" step="10">
-    <span class="val" id="bubbleExpandVal">50</span>
-  </div>
-</div>
-
-
-<div class="group">
-  <label>边缘隐藏 左右（遮住源图边界平头弧）</label>
-  <div class="row">
-    <input type="range" id="bubbleClipX" min="0" max="30" value="0" step="1">
-    <span class="val" id="bubbleClipXVal">20</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>边缘隐藏 上（遮住源图顶边界平头弧）</label>
-  <div class="row">
-    <input type="range" id="bubbleClipYTop" min="0" max="10" value="0" step="1">
-    <span class="val" id="bubbleClipYTopVal">18</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>绘制水平位移</label>
-  <div class="row">
-    <input type="range" id="bubbleDrawOffsetX" min="-200" max="200" value="0" step="1">
-    <span class="val" id="bubbleDrawOffsetXVal">0</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>菜单层 X 偏移（左右）</label>
-  <div class="row">
-    <input type="range" id="bubbleMenuLeft" min="-100" max="200" value="38" step="1">
-    <span class="val" id="bubbleMenuLeftVal">38</span>
-  </div>
-</div>
-
-<div class="group">
-  <label>菜单层 Y 偏移（上下）</label>
-  <div class="row">
-    <input type="range" id="bubbleMenuTop" min="-100" max="300" value="90" step="1">
-    <span class="val" id="bubbleMenuTopVal">40</span>
-  </div>
-</div>
-
-<div class="group" style="margin-top:10px;">
-  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-    <input type="checkbox" id="showBubbleDebug" style="-webkit-app-region:no-drag;">
-    <span>气泡调试框 ①②③</span>
-  </label>
-</div>
-
-<div class="group" style="margin-top:6px;">
-  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-    <input type="checkbox" id="livePreview" style="-webkit-app-region:no-drag;">
-    <span>实时预览（开启后拖 slider 自动刷新）</span>
-  </label>
-</div>
+<hr>
 
 <div class="group" style="margin-top:6px;">
   <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -288,7 +211,6 @@
   <div class="actions">
     <button class="btn" id="menuBtn">应用菜单</button>
     <button class="btn" id="dialogBtn">知乎对话</button>
-    <button class="btn" id="previewBubbleBtn">预览气泡</button>
   </div>
 </div>
 
