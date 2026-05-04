@@ -238,13 +238,19 @@
     // Draw robot to offscreen canvas
     RobotSprite.draw(spriteCtx, behavior.anim);
 
-    var dW = RobotSprite.WIDTH * SCALE;
-    var dH = RobotSprite.HEIGHT * SCALE;
-    var ox = Math.round(canvas.width / 2 - dW / 2);
+    var sleeping = behavior.isSleeping() || behavior.state === 'waking_up';
+    var normalW = RobotSprite.WIDTH  * SCALE;
+    var normalH = RobotSprite.HEIGHT * SCALE;
+    var sleepW  = Math.round(canvas.width  * 0.8);
+    var sleepH  = Math.round(canvas.height * 0.8);
+    var sp = sleeping ? (behavior.anim.sleepProgress || 0) : 0;
+    var dW = Math.round(normalW + (sleepW - normalW) * sp);
+    var dH = Math.round(normalH + (sleepH - normalH) * sp);
+    var ox = Math.round(canvas.width  / 2 - dW / 2);
     var oy = Math.round(canvas.height / 2 - dH / 2);
 
     // Shadow only when awake
-    if (!behavior.isSleeping() && behavior.state !== 'waking_up') {
+    if (!sleeping) {
       ctx.save();
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = '#000000';
