@@ -48,7 +48,9 @@
   var twistFrameTimer = 0;
   var TWIST_FRAME_MS = 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase)
   // Random cooldown before next twist trigger (ms); reset after each twist completes
-  var twistCooldown  = (30 + Math.random() * 30) * 1000;
+  var twistCooldown   = (30 + Math.random() * 30) * 1000;
+  var sneezeCooldown  = (30 + Math.random() * 30) * 1000;
+  var meltCooldown    = (30 + Math.random() * 30) * 1000;
 
   // Hula animation state
   // hulaPhase: 0 = idle, 1 = wearing, 2 = dancing, 3 = removing
@@ -56,6 +58,64 @@
   var hulaFrameIdx   = 0;
   var hulaFrameTimer = 0;
   var HULA_FRAME_MS  = 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase, ~5.7 s total)
+
+  // Sneeze animation state
+  var sneezeActive    = false;
+  var sneezeFrameIdx  = 0;
+  var sneezeFrameTimer = 0;
+  var SNEEZE_FRAME_MS = 80;  // ~12.5 fps (24 frames ≈ 1.9 s)
+
+  // Melt animation state
+  var meltActive     = false;
+  var meltFrameIdx   = 0;
+  var meltFrameTimer = 0;
+  var MELT_FRAME_MS  = 120;  // slower: 24 frames ≈ 2.9 s
+
+  // Apple-hit + Hudun (recovery) animation — play in sequence
+  // applePhase: 0=idle, 1=苹果 playing, 2=狐顿 playing
+  var applePhase     = 0;
+  var appleFrameIdx  = 0;
+  var appleFrameTimer = 0;
+  var APPLE_FRAME_MS = 80;
+
+  // ── Sun-dodge mini-game ───────────────────────────────────────────────────
+  var sunGameActive    = false;
+  var sunSX = 0, sunSY = 0;       // sun position in SCREEN coords
+  var sunVX = 0, sunVY = 0;
+  var sunAngle         = 0;       // spinning ray angle (rad)
+  var sunScore         = 0;       // rounds caught (difficulty scaling)
+  var sunPoints        = 0;       // score this game; resets to 0 on each catch
+  var sunCooldown      = 0;       // ms until sun respawns
+  var sunGameTimer     = 0;       // seconds survived this round
+  var sunResultTimer   = 0;       // ms remaining to show result text
+  var sunResultText    = '';      // e.g. "存活 8.3 秒"
+  var SUN_RADIUS       = 20;
+  var SUN_CATCH_R      = 38;      // screen-px collision radius
+  var SUN_BASE_SPEED   = 85;
+  var SUN_SPEED_INC    = 20;
+  var SUN_HOME_ACCEL   = 50;
+  var SUN_COOLDOWN_MS  = 3200;
+  var FOX_MAX_SPEED    = 340;     // px/s when sun is far
+  var FOX_MIN_SPEED    = 55;      // px/s when sun is very close
+  var FOX_SLOW_FAR     = 280;     // distance: full speed
+  var FOX_SLOW_NEAR    = 50;      // distance: min speed
+
+  function spawnSun() {
+    var sw = typeof screen !== 'undefined' ? screen.width  : 1440;
+    var sh = typeof screen !== 'undefined' ? screen.height : 900;
+    var fx = behavior.screenX, fy = behavior.screenY;
+    var ang = Math.random() * Math.PI * 2;
+    var dist = 280 + Math.random() * 120;
+    sunSX = Math.max(30, Math.min(sw - 30, fx + Math.cos(ang) * dist));
+    sunSY = Math.max(30, Math.min(sh - 30, fy + Math.sin(ang) * dist));
+    var dx = fx - sunSX, dy = fy - sunSY, len = Math.sqrt(dx*dx + dy*dy) || 1;
+    var spd = SUN_BASE_SPEED + sunScore * SUN_SPEED_INC;
+    sunVX = (dx / len) * spd;
+    sunVY = (dy / len) * spd;
+    sunGameTimer = 0;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Mouse state
   var mouseScreen = null;
@@ -66,7 +126,12 @@
   var lastClickTime = 0;
   var DOUBLE_CLICK_MS = 400;
 
-  // Frame timing
+  // Mouse idle dance
+  var mouseIdleTimer = 0;
+  var MOUSE_IDLE_DANCE_S = 20;
+  var lastMouseMovePos = null;
+
+// Frame timing
   var lastTime = performance.now();
   var boundsSendTimer = 0;
 
@@ -103,14 +168,36 @@
 
     // Trigger named animation immediately (e.g. from settings panel)
     window.screenToy.onTriggerAnimation(function (name) {
-      if (name === 'twist' && twistPhase === 0 && hulaPhase === 0) {
+      if (name === 'twist' && twistPhase === 0 && hulaPhase === 0 && !sneezeActive) {
         twistPhase = 1;
         twistFrameIdx = 0;
         twistFrameTimer = 0;
-      } else if (name === 'hula' && hulaPhase === 0 && twistPhase === 0) {
+      } else if (name === 'hula' && hulaPhase === 0 && twistPhase === 0 && !sneezeActive) {
         hulaPhase = 1;
         hulaFrameIdx = 0;
         hulaFrameTimer = 0;
+      } else if (name === 'sneeze' && !sneezeActive && hulaPhase === 0 && twistPhase === 0 && !meltActive) {
+        sneezeActive = true;
+        sneezeFrameIdx = 0;
+        sneezeFrameTimer = 0;
+      } else if (name === 'melt' && !meltActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive) {
+        meltActive = true;
+        meltFrameIdx = 0;
+        meltFrameTimer = 0;
+      } else if (name === 'apple' && applePhase === 0 && hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive) {
+        applePhase = 1;
+        appleFrameIdx = 0;
+        appleFrameTimer = 0;
+      } else if (name === 'sun-toggle') {
+        sunGameActive = !sunGameActive;
+        if (sunGameActive) {
+          sunScore = 0;
+          sunPoints = 0;
+          sunCooldown = 0;
+          spawnSun();
+        } else {
+          if (window.screenToy) window.screenToy.hideSun();
+        }
       }
     });
 
@@ -169,9 +256,15 @@
     }
 
     if (dist < 5) {
+      // Suppress menu while sun game is active
+      if (sunGameActive) {
+        mouseDownPos = null;
+        if (window.screenToy) window.screenToy.stopDrag();
+        return;
+      }
+      var now = Date.now();
       if (behavior.isSleeping()) {
         // Double-click sleeping fox → wake up
-        var now = Date.now();
         if (now - lastClickTime < DOUBLE_CLICK_MS) {
           behavior.wakeUp();
           lastClickTime = 0;
@@ -221,6 +314,7 @@
 
   function triggerMenu() {
     behavior._startSit();
+    behavior.lockSit();
     if (window.screenToy) {
       window.screenToy.showMenu({
         x: behavior.screenX,
@@ -289,7 +383,12 @@
       } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (window.EnterSprite) {
-          window.EnterSprite.drawDirect(ctx, enterFrameIdx, 0, 0, canvas.width, canvas.height);
+          var shrink = 0.8;
+          var sw = Math.round(canvas.width * shrink);
+          var sh = Math.round(canvas.height * shrink);
+          var sx = Math.round((canvas.width - sw) / 2);
+          var sy = Math.round((canvas.height - sh) / 2);
+          window.EnterSprite.drawDirect(ctx, enterFrameIdx, sx, sy, sw, sh);
         }
         requestAnimationFrame(loop);
         return;
@@ -317,6 +416,58 @@
     }
     // ───────────────────────────────────────────────────────────────────────
 
+    // ── Sneeze animation ───────────────────────────────────────────────────
+    if (sneezeActive) {
+      sneezeFrameTimer += dt * 1000;
+      var STOTAL = window.SneezeSprite ? window.SneezeSprite.FRAME_COUNT : 24;
+      while (sneezeFrameTimer >= SNEEZE_FRAME_MS && sneezeFrameIdx < STOTAL) {
+        sneezeFrameTimer -= SNEEZE_FRAME_MS;
+        sneezeFrameIdx++;
+      }
+      if (sneezeFrameIdx >= STOTAL) {
+        sneezeActive = false;
+        sneezeFrameIdx = 0;
+        sneezeFrameTimer = 0;
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
+    // ── Apple-hit → Hudun sequence ─────────────────────────────────────────
+    if (applePhase > 0) {
+      appleFrameTimer += dt * 1000;
+      var ATOTAL = window.AppleSprite ? window.AppleSprite.FRAME_COUNT : 24;
+      var HTOTAL2 = window.HudunSprite ? window.HudunSprite.FRAME_COUNT : 24;
+      var curTotal = applePhase === 1 ? ATOTAL : HTOTAL2;
+      while (appleFrameTimer >= APPLE_FRAME_MS && appleFrameIdx < curTotal) {
+        appleFrameTimer -= APPLE_FRAME_MS;
+        appleFrameIdx++;
+      }
+      if (appleFrameIdx >= curTotal) {
+        if (applePhase === 1) {
+          applePhase = 2; appleFrameIdx = 0; appleFrameTimer = 0;
+        } else {
+          applePhase = 0; appleFrameIdx = 0; appleFrameTimer = 0;
+        }
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
+    // ── Melt animation ─────────────────────────────────────────────────────
+    if (meltActive) {
+      meltFrameTimer += dt * 1000;
+      var MTOTAL = window.MeltSprite ? window.MeltSprite.FRAME_COUNT : 24;
+      while (meltFrameTimer >= MELT_FRAME_MS && meltFrameIdx < MTOTAL) {
+        meltFrameTimer -= MELT_FRAME_MS;
+        meltFrameIdx++;
+      }
+      if (meltFrameIdx >= MTOTAL) {
+        meltActive = false;
+        meltFrameIdx = 0;
+        meltFrameTimer = 0;
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     // ── Twist / Detwist animation ──────────────────────────────────────────
     if (twistPhase > 0) {
       twistFrameTimer += dt * 1000;
@@ -340,14 +491,33 @@
         }
       }
     } else {
-      // Count down to next twist (only when awake, not dragging, not sleeping)
-      if (!isDragging && !behavior.isSleeping() && behavior.state !== 'waking_up') {
-        twistCooldown -= dt * 1000;
-        if (twistCooldown <= 0 && window.TwistSprite && window.TwistSprite.loaded() &&
-            window.DetwistSprite && window.DetwistSprite.loaded()) {
-          twistPhase = 1;
-          twistFrameIdx = 0;
-          twistFrameTimer = 0;
+      // Count down to next twist / sneeze / melt (only when awake, not dragging, not sleeping)
+      var canAutoAnim = !isDragging && !behavior.isSleeping() && behavior.state !== 'waking_up' && !sunGameActive;
+      if (canAutoAnim) {
+        var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive;
+        // Twist
+        if (noOtherAnim) {
+          twistCooldown -= dt * 1000;
+          if (twistCooldown <= 0 && window.TwistSprite && window.TwistSprite.loaded() &&
+              window.DetwistSprite && window.DetwistSprite.loaded()) {
+            twistPhase = 1; twistFrameIdx = 0; twistFrameTimer = 0;
+          }
+        }
+        // Sneeze
+        if (twistPhase === 0 && hulaPhase === 0 && !meltActive) {
+          sneezeCooldown -= dt * 1000;
+          if (sneezeCooldown <= 0 && window.SneezeSprite && window.SneezeSprite.loaded()) {
+            sneezeActive = true; sneezeFrameIdx = 0; sneezeFrameTimer = 0;
+            sneezeCooldown = (30 + Math.random() * 30) * 1000;
+          }
+        }
+        // Melt
+        if (twistPhase === 0 && hulaPhase === 0 && !sneezeActive) {
+          meltCooldown -= dt * 1000;
+          if (meltCooldown <= 0 && window.MeltSprite && window.MeltSprite.loaded()) {
+            meltActive = true; meltFrameIdx = 0; meltFrameTimer = 0;
+            meltCooldown = (30 + Math.random() * 30) * 1000;
+          }
         }
       }
     }
@@ -368,10 +538,94 @@
       behavior.screenY = clamp(behavior.screenY, canvas.height / 2, sb.height - canvas.height / 2);
     }
 
-    // Update behavior (state machine) — frozen during hula so the fox stays put
-    if (hulaPhase === 0) {
+    // Update behavior (state machine) — frozen during special animations or sun game
+    if (hulaPhase === 0 && !sneezeActive && !meltActive && !sunGameActive && applePhase === 0) {
       behavior.update(dt, mouseScreen, sb);
     }
+
+    // ── Mouse-idle dance trigger ──────────────────────────────────────────
+    if (!sunGameActive && !isDragging && !behavior.isSleeping()) {
+      var mouseMoved = mouseScreen && lastMouseMovePos &&
+        (mouseScreen.x !== lastMouseMovePos.x || mouseScreen.y !== lastMouseMovePos.y);
+      if (mouseMoved) {
+        mouseIdleTimer = 0;
+      } else {
+        mouseIdleTimer += dt;
+        if (mouseIdleTimer >= MOUSE_IDLE_DANCE_S &&
+            hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive && enterFrameIdx < 0) {
+          hulaPhase = 1;
+          hulaFrameIdx = 0;
+          hulaFrameTimer = 0;
+          mouseIdleTimer = 0;
+        }
+      }
+      lastMouseMovePos = mouseScreen ? { x: mouseScreen.x, y: mouseScreen.y } : lastMouseMovePos;
+    } else {
+      mouseIdleTimer = 0;
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ── Sun-dodge game update ─────────────────────────────────────────────
+    if (sunGameActive) {
+      sunAngle += dt * 1.8; // spinning rays
+
+      if (sunResultTimer > 0) sunResultTimer -= dt * 1000;
+
+      if (sunCooldown > 0) {
+        sunCooldown -= dt * 1000;
+        if (sunCooldown <= 0) { sunCooldown = 0; spawnSun(); }
+      } else if (!meltActive) {
+        sunGameTimer += dt;
+
+        // Fox smoothly follows mouse, speed limited by sun proximity
+        var fx = behavior.screenX, fy = behavior.screenY;
+        var sunDist = Math.sqrt((sunSX-fx)*(sunSX-fx) + (sunSY-fy)*(sunSY-fy));
+        var sunCloseness = Math.max(0, Math.min(1, 1 - (sunDist - FOX_SLOW_NEAR) / (FOX_SLOW_FAR - FOX_SLOW_NEAR)));
+
+        // Score: 1 pt/sec baseline, multiplier 0.2× (far) → 3.0× (close)
+        var scoreMultiplier = 0.2 + sunCloseness * 2.8;
+        sunPoints += dt * scoreMultiplier;
+
+        if (mouseScreen) {
+          var t = Math.max(0, Math.min(1, (sunDist - FOX_SLOW_NEAR) / (FOX_SLOW_FAR - FOX_SLOW_NEAR)));
+          // Higher score → lower top speed (fox gets heavier; min 30% of max)
+          var speedFactor = Math.max(0.3, 1 - sunPoints / 120);
+          var foxSpd = (FOX_MIN_SPEED + (FOX_MAX_SPEED - FOX_MIN_SPEED) * t) * speedFactor;
+          var tx = clamp(mouseScreen.x, canvas.width/2, sb.width  - canvas.width/2);
+          var ty = clamp(mouseScreen.y, canvas.height/2, sb.height - canvas.height/2);
+          var mdx = tx - fx, mdy = ty - fy;
+          var mdist = Math.sqrt(mdx*mdx + mdy*mdy);
+          if (mdist > 1) {
+            var move = Math.min(mdist, foxSpd * dt);
+            behavior.screenX = fx + (mdx/mdist) * move;
+            behavior.screenY = fy + (mdy/mdist) * move;
+          }
+        }
+
+        // Sun pursues fox
+        var fxn = behavior.screenX, fyn = behavior.screenY;
+        var hdx = fxn - sunSX, hdy = fyn - sunSY;
+        var hdist = Math.sqrt(hdx*hdx + hdy*hdy) || 1;
+        sunVX += (hdx/hdist) * SUN_HOME_ACCEL * dt;
+        sunVY += (hdy/hdist) * SUN_HOME_ACCEL * dt;
+        var sunSpd = Math.sqrt(sunVX*sunVX + sunVY*sunVY);
+        var maxSpd = SUN_BASE_SPEED + sunScore * SUN_SPEED_INC;
+        if (sunSpd > maxSpd) { sunVX = sunVX/sunSpd*maxSpd; sunVY = sunVY/sunSpd*maxSpd; }
+        sunSX += sunVX * dt;
+        sunSY += sunVY * dt;
+
+        // Collision
+        if (hdist < SUN_CATCH_R && hulaPhase === 0 && twistPhase === 0 && !sneezeActive) {
+          meltActive = true; meltFrameIdx = 0; meltFrameTimer = 0;
+          sunScore++;
+          sunCooldown = SUN_COOLDOWN_MS;
+          sunResultText = '本局 ' + Math.floor(sunPoints) + ' 分';
+          sunResultTimer = SUN_COOLDOWN_MS - 200;
+          sunPoints = 0; // reset — new game starts after cooldown
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     // Check for bubble triggers
     if (behavior.anim._bubbleText && window.screenToy) {
@@ -407,6 +661,13 @@
 
     // --- Render ---
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // During sun game: fox faces toward the mouse
+    if (sunGameActive && !meltActive && mouseScreen) {
+      var toMouseAngle = Math.atan2(mouseScreen.y - behavior.screenY, mouseScreen.x - behavior.screenX);
+      behavior.anim.wanderDir = toMouseAngle;
+      behavior.anim._state = 'wander';
+    }
 
     // Draw robot to offscreen canvas
     RobotSprite.draw(spriteCtx, behavior.anim);
@@ -444,6 +705,39 @@
       var hulaOx = Math.round(canvas.width  / 2 - hulaDW / 2);
       var hulaOy = Math.round(canvas.height / 2 - hulaDH / 2);
       if (hulaSprite) hulaSprite.drawDirect(ctx, hulaFrameToShow, hulaOx, hulaOy, hulaDW, hulaDH);
+    } else if (sneezeActive) {
+      var sneezeFrameToShow = Math.min(sneezeFrameIdx, (window.SneezeSprite ? window.SneezeSprite.FRAME_COUNT : 24) - 1);
+      if (window.SneezeSprite) {
+        var sneezeDW = Math.round(dW * 1.2);
+        var sneezeDH = Math.round(dH * 1.2);
+        var sneezeOx = Math.round(canvas.width  / 2 - sneezeDW / 2);
+        var sneezeOy = Math.round(canvas.height / 2 - sneezeDH / 2);
+        window.SneezeSprite.drawDirect(ctx, sneezeFrameToShow, sneezeOx, sneezeOy, sneezeDW, sneezeDH);
+      }
+    } else if (meltActive) {
+      var meltFrameToShow = Math.min(meltFrameIdx, (window.MeltSprite ? window.MeltSprite.FRAME_COUNT : 24) - 1);
+      if (window.MeltSprite) {
+        // Square frame (256×256 source): size = 1.44× the shorter display side, capped at canvas
+        var meltSize = Math.min(
+          Math.round(Math.min(dW, dH) * 1.44),
+          canvas.width - 4,
+          canvas.height - 4
+        );
+        var meltOx = Math.round(canvas.width  / 2 - meltSize / 2);
+        // Bottom-align: feet at same ground level as normal sprite; clamp so sun isn't cut
+        var meltOy = Math.max(0, Math.round(oy + dH - meltSize));
+        window.MeltSprite.drawDirect(ctx, meltFrameToShow, meltOx, meltOy, meltSize, meltSize);
+      }
+    } else if (applePhase > 0) {
+      var appleFrameToShow = Math.min(appleFrameIdx, (applePhase === 1 ? window.AppleSprite : window.HudunSprite || window.AppleSprite).FRAME_COUNT - 1);
+      var appleSprite = applePhase === 1 ? window.AppleSprite : window.HudunSprite;
+      if (appleSprite) {
+        var appleDW = Math.round(dW * 1.3);
+        var appleDH = Math.round(dH * 1.3);
+        var appleOx = Math.round(canvas.width  / 2 - appleDW / 2);
+        var appleOy = Math.round(canvas.height / 2 - appleDH / 2);
+        appleSprite.drawDirect(ctx, appleFrameToShow, appleOx, appleOy, appleDW, appleDH);
+      }
     } else if (twistPhase > 0) {
       var twistFrameToShow = Math.min(twistFrameIdx, (window.TwistSprite ? window.TwistSprite.FRAME_COUNT : 24) - 1);
       if (twistPhase === 1 && window.TwistSprite) {
@@ -453,6 +747,42 @@
       }
     } else {
       ctx.drawImage(spriteCanvas, 0, 0, RobotSprite.WIDTH, RobotSprite.HEIGHT, ox, oy, dW, dH);
+    }
+
+    // Sun game: drive the separate sun window via IPC
+    if (sunGameActive) {
+      if (!meltActive && sunCooldown <= 0) {
+        var sunScreenDist = Math.sqrt((sunSX-behavior.screenX)*(sunSX-behavior.screenX) +
+                                      (sunSY-behavior.screenY)*(sunSY-behavior.screenY));
+        var closeness = Math.max(0, Math.min(1, 1 - (sunScreenDist - FOX_SLOW_NEAR) / (FOX_SLOW_FAR - FOX_SLOW_NEAR)));
+        if (window.screenToy) window.screenToy.updateSun({ x: sunSX, y: sunSY, closeness: closeness, angle: sunAngle });
+
+        // Score + multiplier HUD drawn on fox canvas
+        var mult = 0.2 + closeness * 2.8;
+        ctx.save();
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(180,60,0,0.85)';
+        ctx.fillText(Math.floor(sunPoints) + '分', 4, 12);
+        ctx.font = '9px sans-serif';
+        ctx.fillStyle = closeness > 0.6 ? 'rgba(220,40,0,0.9)' : 'rgba(140,80,0,0.7)';
+        ctx.fillText('×' + mult.toFixed(1), 4, 23);
+        ctx.restore();
+      } else {
+        if (window.screenToy) window.screenToy.hideSun();
+      }
+
+      // Caught result message (shows during cooldown after melt)
+      if (sunResultTimer > 0 && sunResultText) {
+        var alpha = Math.min(1, sunResultTimer / 600);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#cc4400';
+        ctx.fillText(sunResultText, canvas.width / 2, canvas.height - 6);
+        ctx.restore();
+      }
     }
 
     // Draw airplane if active

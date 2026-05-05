@@ -5,6 +5,7 @@ import { exec, execSync } from 'child_process';
 
 let win: BrowserWindow | null = null;
 let quitPending = false; // true once quit animation has been triggered
+let sunWin: BrowserWindow | null = null;
 let settingsWin: BrowserWindow | null = null;
 let menuWin: BrowserWindow | null = null;
 let menuPreviewMode = false;
@@ -463,6 +464,51 @@ ipcMain.on('trigger-animation', (_event, name: string) => {
     win.webContents.send('trigger-animation', name);
   }
 });
+
+function createSunWindow() {
+  sunWin = new BrowserWindow({
+    width: 160,
+    height: 160,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    focusable: false,
+    hasShadow: false,
+    skipTaskbar: true,
+    resizable: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  sunWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  sunWin.setAlwaysOnTop(true, 'screen-saver');
+  sunWin.setIgnoreMouseEvents(true);
+  sunWin.loadFile(path.join(__dirname, '..', '..', 'src', 'sun-window.html'));
+  sunWin.hide();
+  sunWin.on('closed', () => { sunWin = null; });
+}
+
+ipcMain.on('update-sun', (_event, data: { x: number; y: number; closeness: number; angle: number }) => {
+  if (!sunWin || sunWin.isDestroyed()) createSunWindow();
+  if (!sunWin || sunWin.isDestroyed()) return;
+  const px = Math.round(data.x - 80);
+  const py = Math.round(data.y - 80);
+  if (!Number.isFinite(px) || !Number.isFinite(py)) return;
+  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
+  sunWin.setPosition(
+    Math.max(0, Math.min(sw - 160, px)),
+    Math.max(0, Math.min(sh - 160, py))
+  );
+  if (!sunWin.isVisible()) sunWin.show();
+  sunWin.webContents.send('sun-data', { closeness: data.closeness, angle: data.angle });
+});
+
+ipcMain.on('hide-sun', () => {
+  if (sunWin && !sunWin.isDestroyed()) sunWin.hide();
+});
+
 
 function createSettingsWindow() {
   if (settingsWin && !settingsWin.isDestroyed()) {
