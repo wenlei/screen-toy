@@ -389,12 +389,9 @@
     FRAME_COUNT: TWIST_FRAME_COUNT,
   };
 
-  // ---- Hula animation sheets (6 cols × 4 rows = 24 frames, 256×256 each) ----
-  // Three sequential phases: wear skirt → dance → remove skirt
-  var HULA_COLS = 6, HULA_FRAME_W = 256, HULA_FRAME_H = 256;
-  var HULA_FRAME_COUNT = 24;
-
-  function makeHulaSprite(filename) {
+  // ---- Generic sprite-sheet factory ----------------------------------------
+  // cols: columns in the sheet; fw/fh: frame pixel size; fc: total frame count
+  function makeSprite(filename, cols, fw, fh, fc) {
     var sheet = new Image();
     var loaded = false;
     sheet.onload = function () { loaded = true; };
@@ -402,23 +399,30 @@
 
     function drawDirect(ctx, frameIdx, dx, dy, dw, dh) {
       if (!loaded) return;
-      var fi  = Math.max(0, Math.min(frameIdx, HULA_FRAME_COUNT - 1));
-      var col = fi % HULA_COLS;
-      var row = Math.floor(fi / HULA_COLS);
-      var sx  = col * HULA_FRAME_W;
-      var sy  = row * HULA_FRAME_H;
-      var scale = Math.min(dw / HULA_FRAME_W, dh / HULA_FRAME_H);
-      var rdw = Math.round(HULA_FRAME_W * scale);
-      var rdh = Math.round(HULA_FRAME_H * scale);
+      var fi  = Math.max(0, Math.min(frameIdx, fc - 1));
+      var col = fi % cols;
+      var row = Math.floor(fi / cols);
+      var sx  = col * fw;
+      var sy  = row * fh;
+      var scale = Math.min(dw / fw, dh / fh);
+      var rdw = Math.round(fw * scale);
+      var rdh = Math.round(fh * scale);
       var rdx = dx + Math.round((dw - rdw) / 2);
       var rdy = dy + Math.round((dh - rdh) / 2);
-      ctx.drawImage(sheet, sx, sy, HULA_FRAME_W, HULA_FRAME_H, rdx, rdy, rdw, rdh);
+      ctx.drawImage(sheet, sx, sy, fw, fh, rdx, rdy, rdw, rdh);
     }
 
-    return { drawDirect: drawDirect, loaded: function () { return loaded; }, FRAME_COUNT: HULA_FRAME_COUNT };
+    return { drawDirect: drawDirect, loaded: function () { return loaded; }, FRAME_COUNT: fc };
   }
+
+  // Hula sheets: 6 cols × 4 rows, 256×256, 24 frames each
+  function makeHulaSprite(filename) { return makeSprite(filename, 6, 256, 256, 24); }
 
   window.HulaWearSprite   = makeHulaSprite('hula_wear_sheet.png');
   window.HulaDanceSprite  = makeHulaSprite('hula_dance_sheet.png');
   window.HulaRemoveSprite = makeHulaSprite('hula_remove_sheet.png');
+  window.SneezeSprite     = makeHulaSprite('sneeze_sheet.png');
+  window.MeltSprite       = makeSprite('melt_sheet.png',  6, 256, 256, 24);
+  window.AppleSprite      = makeSprite('apple_sheet.png', 6, 256, 256, 24);
+  window.HudunSprite      = makeSprite('hudun_sheet.png', 6, 256, 256, 24);
 })();

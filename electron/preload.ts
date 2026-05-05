@@ -48,6 +48,16 @@ contextBridge.exposeInMainWorld('screenToy', {
   onTriggerAnimation: (callback: (name: string) => void) => {
     ipcRenderer.on('trigger-animation', (_event, name: string) => callback(name));
   },
+  // Sun game window
+  updateSun: (data: { x: number; y: number; closeness: number; angle: number }) => {
+    ipcRenderer.send('update-sun', data);
+  },
+  hideSun: () => {
+    ipcRenderer.send('hide-sun');
+  },
+  onSunData: (callback: (data: { closeness: number; angle: number }) => void) => {
+    ipcRenderer.on('sun-data', (_event, data) => callback(data));
+  },
 });
 
 contextBridge.exposeInMainWorld('screenToySettings', {

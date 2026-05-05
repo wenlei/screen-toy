@@ -54,11 +54,16 @@
 
   // ---- Animation buttons ----
   var ANIMS = [
-    { id: 'twist', label: 'Twist → Detwist', icon: '🌀', durationMs: 4000 },
-    { id: 'hula',  label: '穿裙 → 跳舞 → 脱裙', icon: '🌺', durationMs: 6000 },
+    { id: 'twist',      label: '拧巴 → 不拧巴',    icon: '🌀', durationMs: 4000 },
+    { id: 'hula',       label: '穿裙 → 跳舞 → 脱裙', icon: '🌺', durationMs: 6000 },
+    { id: 'sneeze',     label: '打喷嚏',            icon: '🤧', durationMs: 2000 },
+    { id: 'melt',       label: '热化了',            icon: '☀️', durationMs: 3000 },
+    { id: 'sun-toggle', label: '躲太阳',            icon: '🎮', isToggle: true },
+    { id: 'apple',      label: '苹果 → 狐顿',        icon: '🍎', durationMs: 4000 },
   ];
 
   var animTimers = {};
+  var sunGameOn = false;
 
   ANIMS.forEach(function (anim) {
     var btn = document.createElement('button');
@@ -69,12 +74,16 @@
       if (window.screenToySettings) {
         window.screenToySettings.triggerAnimation(anim.id);
       }
-      // Visual feedback: highlight briefly
-      btn.classList.add('playing');
-      clearTimeout(animTimers[anim.id]);
-      animTimers[anim.id] = setTimeout(function () {
-        btn.classList.remove('playing');
-      }, anim.durationMs || 4000);
+      if (anim.isToggle) {
+        sunGameOn = !sunGameOn;
+        btn.classList.toggle('playing', sunGameOn);
+      } else {
+        btn.classList.add('playing');
+        clearTimeout(animTimers[anim.id]);
+        animTimers[anim.id] = setTimeout(function () {
+          btn.classList.remove('playing');
+        }, anim.durationMs || 4000);
+      }
     });
     els.animGrid.appendChild(btn);
   });
