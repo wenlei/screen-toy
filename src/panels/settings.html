@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" />
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -207,10 +208,44 @@
 <hr>
 
 <div class="group">
+  <label>AI Agent</label>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <select id="agentProvider" style="background:#fff;border:1px solid #ddd;color:#444;padding:5px 8px;border-radius:4px;font-size:12px;outline:none;">
+      <option value="deepseek">DeepSeek</option>
+      <option value="zhihu">知乎知答</option>
+    </select>
+    <div id="apiKeyRow1" style="position:relative;">
+      <input type="password" id="agentApiKey" placeholder="DeepSeek API Key" style="background:#fff;border:1px solid #ddd;color:#444;padding:5px 36px 5px 8px;border-radius:4px;font-size:12px;outline:none;width:100%;">
+      <span id="toggleApiKey" class="material-symbols-outlined" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none;color:#aaa;">visibility_off</span>
+    </div>
+    <div id="apiKeyRow2" style="position:relative;">
+      <input type="password" id="agentApiKey2" placeholder="Zhihu API Key" style="background:#fff;border:1px solid #ddd;color:#444;padding:5px 36px 5px 8px;border-radius:4px;font-size:12px;outline:none;width:100%;">
+      <span id="toggleApiKey2" class="material-symbols-outlined" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none;color:#aaa;">visibility_off</span>
+    </div>
+    <input type="text" id="agentEndpoint" placeholder="Endpoint URL" style="background:#fff;border:1px solid #ddd;color:#444;padding:5px 8px;border-radius:4px;font-size:12px;outline:none;">
+    <input type="text" id="agentModel" placeholder="Model name" style="background:#fff;border:1px solid #ddd;color:#444;padding:5px 8px;border-radius:4px;font-size:12px;outline:none;">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:2px;">
+      <input type="checkbox" id="enableWebSearch">
+      <span>启用网络搜索（回答前搜索 DuckDuckGo）</span>
+    </label>
+  </div>
+</div>
+
+<hr>
+
+<div class="group">
+  <label>知识库 · 追踪话题</label>
+  <div id="topicList" style="display:flex;flex-direction:column;gap:3px;margin-top:4px;"></div>
+  <div style="font-size:11px;color:#999;margin-top:4px;">AI 会话结束后自动提取话题</div>
+</div>
+
+<hr>
+
+<div class="group">
   <label>快捷操作</label>
   <div class="actions">
     <button class="btn" id="menuBtn">应用菜单</button>
-    <button class="btn" id="dialogBtn">知乎对话</button>
+    <button class="btn" id="dialogBtn">AI 对话</button>
   </div>
 </div>
 

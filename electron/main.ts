@@ -1,7 +1,9 @@
 import { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Agent, getDefaultSystemPrompt } from './agent';
 import { exec, execSync } from 'child_process';
+import * as knowledge from './knowledge';
 
 let win: BrowserWindow | null = null;
 let quitPending = false; // true once quit animation has been triggered
@@ -13,6 +15,7 @@ let dialogWin: BrowserWindow | null = null;
 let bubbleWin: BrowserWindow | null = null;
 let mouseInterval: NodeJS.Timeout | null = null;
 let tray: Tray | null = null;
+let agent: Agent | null = null;
 
 const WIN_W = 152;
 const WIN_H = 132;
@@ -55,20 +58,29 @@ const currentSettings = {
   pokeFrame: 70,
   flyFrame: 80,
   displayScale: 0.7,
-  menuApps: DEFAULT_MENU_APPS.map(a => ({ ...a })) as MenuApp[],
-  bubbleOffsetY:    0,    // fine-tune: positive = cloud rises higher, negative = lower
-  bubbleCloudOffset:  0,  // new image has 56px built-in transparent padding; no extra needed
-  bubbleCanvasTopPad: 55, // transparent margin above cloud in canvas
-  bubbleCanvasBotPad: 30, // transparent margin below cloud in canvas
-  bubbleExpand:       0,  // extra transparent padding added to window on all sides
-  bubbleClipX:       0,   // hide N px from left+right source edges (set >0 only if source has edge artifacts)
-  bubbleClipYTop:    0,   // hide N px from top source edge (0 = off)
-  bubbleDrawOffsetX: 0,   // shift drawing horizontally within canvas
-  bubbleMenuLeft:   100,  // menu overlay left offset within cloud (CLOUD_OFFSET=0, so shifted right)
-  bubbleMenuTop:     90,  // menu overlay top offset within cloud
-  bubbleScale:       0.85, // scale factor applied to cloud drawing (dst size in drawImage)
-  showWindowBorder:  false,
-  showBubbleDebug:   false,
+  selectedApps: [] as string[],
+  customApps: [] as { id: string; name: string }[],
+  showWindowBorder: false,
+  menuApps: [] as { id: string; name: string; icon: string; cmd: string; appPath: string }[],
+  agentApiKey: '',
+  agentApiKey2: '',
+  agentEndpoint: 'https://api.deepseek.com/v1/chat/completions',
+  agentModel: 'deepseek-chat',
+  agentProvider: 'deepseek' as string,
+  enableWebSearch: false,
+  // Bubble layout
+  bubbleScale:       0.85 as number,
+  bubbleCanvasTopPad: 55 as number,
+  bubbleCanvasBotPad: 30 as number,
+  bubbleCloudOffset:  0 as number,
+  bubbleDrawOffsetX:  0 as number,
+  bubbleMenuLeft:     100 as number,
+  bubbleMenuTop:      90 as number,
+  showBubbleDebug:    false,
+  bubbleClipX:        0 as number,
+  bubbleClipYTop:     0 as number,
+  bubbleOffsetY:      0 as number,
+  bubbleExpand:       0 as number,
 };
 
 function loadSettings() {
@@ -178,6 +190,15 @@ ipcMain.on('stop-drag', () => {
 ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
   console.log('[Settings]', JSON.stringify(settings));
   Object.assign(currentSettings, settings);
+
+  // Reset agent when API config changes
+  if (agent &&
+      (settings.agentApiKey !== undefined ||
+       settings.agentEndpoint !== undefined ||
+       settings.agentModel !== undefined)) {
+    agent = null; // will be recreated on next dialog-send
+  }
+
   saveSettings();
   if (win && !win.isDestroyed()) {
     win.webContents.send('settings-changed', currentSettings);
@@ -304,12 +325,130 @@ ipcMain.on('open-dialog', () => {
 });
 
 ipcMain.on('dialog-send', (_event, msg: string) => {
-  console.log('[Dialog]', msg);
+  if (!agent) {
+    // Pick the right API key based on provider
+    var provider = (currentSettings.agentProvider as any) || 'deepseek';
+    var apiKey = provider === 'zhihu'
+      ? (currentSettings.agentApiKey2 || currentSettings.agentApiKey)
+      : currentSettings.agentApiKey;
+
+    agent = new Agent({
+      apiKey: apiKey,
+      endpoint: currentSettings.agentEndpoint || 'https://api.deepseek.com/v1/chat/completions',
+      model: currentSettings.agentModel || 'deepseek-chat',
+      systemPrompt: getDefaultSystemPrompt(),
+      enableWebSearch: !!currentSettings.enableWebSearch,
+      provider: provider,
+    });
+  }
+
+  if (!currentSettings.agentApiKey) {
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-message', '请先在 Settings 中设置 API Key（推荐 DeepSeek: https://platform.deepseek.com）');
+    }
+    return;
+  }
+
+  if (dialogWin && !dialogWin.isDestroyed()) {
+    dialogWin.webContents.send('dialog-message', '...');
+  }
+
+  agent.sendMessage(
+    msg,
+    undefined,
+    (reply) => {
+      if (dialogWin && !dialogWin.isDestroyed()) {
+        dialogWin.webContents.send('dialog-message', reply);
+      }
+
+      // Auto-save conversation to knowledge base
+      try {
+        var provider = (currentSettings.agentProvider as any) || 'deepseek';
+        knowledge.addConversation({
+          id: Date.now().toString(36),
+          date: new Date().toISOString(),
+          provider: provider,
+          messages: [
+            { role: 'user', content: msg },
+            { role: 'assistant', content: reply },
+          ],
+        });
+      } catch (e) {}
+    },
+    (err) => {
+      if (dialogWin && !dialogWin.isDestroyed()) {
+        dialogWin.webContents.send('dialog-message', '出错了: ' + err);
+      }
+    }
+  );
+});
+
+ipcMain.on('dialog-clear', () => {
+  if (agent) {
+    agent.clearHistory();
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-message', '(新会话)');
+    }
+  }
 });
 
 ipcMain.on('dialog-bubble', (_event, text: string) => {
   if (win && !win.isDestroyed()) {
     win.webContents.send('api-bubble', text);
+  }
+});
+
+// ---- Knowledge base IPC ----
+
+ipcMain.on('kb-save-conversation', (_event, record: any) => {
+  knowledge.addConversation({
+    id: record.id || Date.now().toString(36),
+    date: new Date().toISOString(),
+    topic: record.topic || '',
+    provider: record.provider || 'deepseek',
+    messages: record.messages || [],
+    summary: record.summary || '',
+  });
+
+  if (record.topics && Array.isArray(record.topics)) {
+    record.topics.forEach(function (t: any) {
+      knowledge.addOrUpdateTopic(t.name || t, t.tags || []);
+    });
+  }
+});
+
+ipcMain.handle('kb-get-topics', () => {
+  return knowledge.getTopics();
+});
+
+ipcMain.handle('kb-get-conversations', () => {
+  return knowledge.getConversations();
+});
+
+ipcMain.on('kb-remove-topic', (_event, name: string) => {
+  knowledge.removeTopic(name);
+});
+
+ipcMain.handle('kb-extract-topics', async (_event, messages: any[]) => {
+  // Use existing agent to extract topics from conversation
+  if (!agent) {
+    agent = new Agent({
+      apiKey: currentSettings.agentApiKey || '',
+      endpoint: currentSettings.agentEndpoint || 'https://api.deepseek.com/v1/chat/completions',
+      model: currentSettings.agentModel || 'deepseek-chat',
+      systemPrompt: getDefaultSystemPrompt(),
+      provider: 'deepseek',
+    });
+  }
+  try {
+    const history = agent.getHistory();
+    agent.clearHistory();
+    const reply = await agent.sendMessage(
+      '根据以上对话历史，提取用户感兴趣的话题（3-5 个），用 JSON 数组返回，格式：[{"name":"话题","tags":["标签"]}]。只返回 JSON，不要其他文字。'
+    );
+    return reply;
+  } catch (e) {
+    return '[]';
   }
 });
 
@@ -319,8 +458,8 @@ function createBubbleWindow() {
   if (bubbleWin && !bubbleWin.isDestroyed()) return;
 
   bubbleWin = new BrowserWindow({
-    width: 300,
-    height: 300,
+    width: 500,
+    height: 220,
     transparent: true,
     frame: false,
     alwaysOnTop: true,

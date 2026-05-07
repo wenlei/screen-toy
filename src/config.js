@@ -18,12 +18,18 @@
     pokeFrame: 70,
     flyFrame: 80,
 
-    // Paper airplane
-    airplaneFolder: 'paper_plane',
-    airplaneFrameW: 181,
-    airplaneFrameH: 362,
-    airplaneCols: 12,
-    airplaneRows: 2,
+    // Special animation frame intervals (ms)
+    twistFrameMs:  80,
+    hulaFrameMs:   80,
+    sneezeFrameMs: 80,
+    meltFrameMs:   120,
+    appleFrameMs:  80,
+    okFrameMs:     80,
+    enterFrameMs:  80,
+    quitFrameMs:   80,
+    // Random animation cooldown range (seconds)
+    animCooldownMinSec: 25,
+    animCooldownMaxSec: 60,
 
     // Bubble
     randomQuotes: [
@@ -31,7 +37,6 @@
     ],
     sequences: [
       [
-        { text: '我在思考狐生...', wait: 2000 },
         { text: '我想吃火锅', wait: 2000 },
         { text: '算了，还是睡觉吧', wait: 0 },
       ],
@@ -41,13 +46,17 @@
 
       ],
       [
-        { text: 'Meow~~~', wait: 1000 },
-        { text: 'Woof~~~ Woof', wait: 1000 },
-        { text: 'Quack~~~ Quack', wait: 1000 },
-        { text: 'Oink~~~ Oink', wait: 1000 },
-        { text: 'Moooo~~~', wait: 1000 },
-        { text: 'Baa~~~ Baa', wait: 1000 },
-        { text: '狐狸是怎么叫的?', wait: 2000 },
+        { text: '小猫叫Meow~~~', wait: 1000 },
+        { text: '小狗叫Woof~~~ Woof', wait: 1000 },
+        { text: '小鸭子叫Quack~~~ Quack', wait: 1000 },
+        { text: '那狐狸是怎么叫的?', wait: 1000 },
+        { text: '汪。', wait: 1000 },
+      ],
+      [
+        { text: '小猪叫Oink~~~ Oink', wait: 1000 },
+        { text: '小牛叫Moooo~~~', wait: 1000 },
+        { text: '小马叫Baa~~~ Baa', wait: 1000 },
+        { text: '那狐狸是怎么叫的?', wait: 1000 },
         { text: '汪。', wait: 1000 },
       ],
     ],

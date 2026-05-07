@@ -13,21 +13,23 @@ npm run dev
 
 ```
 electron/
-├── main.ts             # Electron 主进程：窗口管理、IPC、托盘、设置持久化
-└── preload.ts          # contextBridge：暴露安全 API 给渲染层
+├── main.ts             # Electron 主进程：窗口管理、IPC、托盘、设置持久化、AI Agent 集成
+├── preload.ts          # contextBridge：暴露安全 API 给渲染层
+├── agent.ts            # AI Agent 后端：HTTP 请求、多 Provider 支持、网络搜索
+└── knowledge.ts        # 知识库：对话记录、话题追踪、数据持久化
 
 src/
 ├── index.html          # 主窗口（透明 Canvas，全程置顶）
 ├── renderer.js         # 游戏循环、鼠标交互、特殊动画、躲太阳游戏
 ├── behavior.js         # 行为状态机（idle / walk / sit / poke / drag / sleep）
-├── doodle-render.js    # 精灵图加载、帧动画渲染、方向匹配
+├── doodle-render.js    # 精灵图加载、帧动画渲染
 ├── sun-window.html/js  # 躲太阳游戏：太阳窗口
-├── apple-window.html/js# 苹果窗口（预留）
+├── apple-window.html   # 苹果窗口（预留）
 └── panels/
     ├── menu.html/js    # 思维气泡菜单（31 帧 Canvas 动画 + 3-slice 拉伸）
-    ├── dialog.html/js  # 对话窗口
+    ├── dialog.html/js  # AI 智能对话窗口（Markdown 渲染、流式更新）
     ├── bubble.html/js  # 头顶小气泡提示
-    └── settings.html/js# 参数设置面板
+    └── settings.html/js# 参数设置面板（AI 配置、知识库管理）
 
 src/assets/doodles/arctic_fox/
 ├── sheet.png           # 主精灵图（4 方向 × 24 帧行走/idle）
@@ -35,8 +37,11 @@ src/assets/doodles/arctic_fox/
 ├── melt_sheet.png      # 热化动画（6×4 帧）
 ├── apple_sheet.png     # 苹果砸头动画（6×4 帧）
 ├── hudun_sheet.png     # 狐顿恢复动画（6×4 帧）
-├── hula_*.png          # 穿裙/跳舞/脱裙三段动画
-└── twist_sheet.png     # 拧巴动画
+├── hula_*.png          # 草裙舞三段动画（穿裙/跳舞/脱裙）
+├── twist_sheet.png     # 拧巴动画
+├── freeze_sheet.png    # 冻结动画（6×4 帧）
+├── thaw_sheet.png      # 融化动画（6×4 帧）
+└── ok_sheet.png        # 好了动画（6×4 帧）
 ```
 
 ## 交互
@@ -49,8 +54,9 @@ src/assets/doodles/arctic_fox/
 | 屏幕角落静止 | 触发睡眠，再次点击唤醒 |
 | 菜单 → 应用项 | 打开对应 macOS 应用 |
 | 菜单 → 去知乎看看 | 在浏览器打开知乎 |
-| 菜单 → 知乎对话 | 打开对话窗口 |
+| 菜单 → 知乎对话 | 打开 AI 智能对话窗口 |
 | 菜单 → 就这样吧 | 关闭菜单 |
+| 对话窗口 → 输入消息 | 与北极狐 AI 对话 |
 | 托盘 → Settings | 打开设置面板 |
 | 托盘 → Quit | 退出（播放消失动画） |
 
@@ -60,12 +66,42 @@ src/assets/doodles/arctic_fox/
 
 | 动画 | 触发方式 | 说明 |
 |------|----------|------|
-| 🌀 拧巴 → 不拧巴 | 设置面板 | 扭曲后恢复 |
-| 🌺 穿裙 → 跳舞 → 脱裙 | 设置面板 | 三段式草裙舞 |
+| 🌀 别拧巴了 | 设置面板 | 扭曲后恢复 |
+| 🌺 草裙舞 | 设置面板 | 穿裙→跳舞→脱裙三段式 |
 | 🤧 打喷嚏 | 设置面板 | 喷嚏动画 |
 | ☀️ 热化了 | 设置面板 / 被太阳追上 | 融化效果 |
-| 🍎 苹果 → 狐顿 | 设置面板 | 苹果砸头后发呆 |
+| 🍎 狐顿 | 设置面板 | 苹果砸头后发呆 |
+| 🧊 冻成冰棍 | 设置面板 | 冻结→融化两段式 |
 | 🎮 躲太阳 | 设置面板（开关） | 见下方说明 |
+
+## AI 智能聊天
+
+通过系统托盘打开对话窗口，与北极狐进行 AI 智能对话：
+
+| 功能 | 说明 |
+|------|------|
+| 💬 智能对话 | 支持多轮对话，上下文记忆 |
+| 🔍 网络搜索 | 可选开启，自动搜索 Wikipedia/DuckDuckGo |
+| 📝 Markdown 渲染 | 支持代码块、列表、粗体等格式 |
+| 💾 Obsidian 保存 | 请求保存时自动生成 Markdown 模板 |
+| 🧠 知识库 | 自动记录对话和追踪话题 |
+| 🤖 多 Provider 支持 | DeepSeek / Zhihu / 自定义 OpenAI 兼容接口 |
+
+### 支持的 AI 提供商
+
+| 提供商 | 默认 Endpoint | 模型 | 特点 |
+|--------|---------------|------|------|
+| **DeepSeek** | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` | 标准 OpenAI 兼容接口 |
+| **知乎** | `https://developer.zhihu.com/v1/chat/completions` | `zhida-fast-1p5` | 需要 X-Request-Timestamp 头 |
+| **自定义** | 用户配置 | 用户配置 | 任何 OpenAI 兼容 API |
+
+### 对话界面特性
+
+- **等待动画**: 发送消息后显示加载动画
+- **流式更新**: 逐步显示 AI 回复
+- **错误处理**: 网络错误、API 错误友好提示
+- **历史记录**: 保留最近 50 次对话
+- **话题追踪**: 自动识别并记录讨论话题
 
 ## 躲太阳游戏
 
@@ -84,6 +120,9 @@ src/assets/doodles/arctic_fox/
 - **应用菜单**：从已安装应用列表中选择，添加到气泡菜单，持久化保存
 - **特殊动画触发**：一键预览所有特殊动画
 - **气泡位置调节**：实时调整气泡偏移、边距、顶部间距
+- **AI 配置**：API 密钥、提供商、模型、Endpoint 设置
+- **网络搜索**：开关控制是否启用 AI 网络搜索功能
+- **知识库管理**：查看追踪的话题和对话历史
 
 设置保存在 `~/Library/Application Support/screen-toy/screen-toy-settings.json`。
 
@@ -94,6 +133,30 @@ src/assets/doodles/arctic_fox/
 1. 播放 31 帧 Canvas 精灵动画（18 fps，约 1.7 秒）
 2. 动画结束后切换为 `adaptive_base.png` 3-slice 拉伸，适配不同菜单条目数
 3. 菜单 HTML overlay 在动画完成后淡入
+
+## AI 知识库与对话管理
+
+对话数据保存在 `~/Library/Application Support/screen-toy/knowledge.json`，包含：
+
+| 数据类型 | 说明 |
+|----------|------|
+| **对话记录** | 保留最近 50 次完整对话 |
+| **话题追踪** | 自动识别讨论话题，记录频率和标签 |
+| **元数据** | 创建时间、最后讨论时间、来源等 |
+
+### 话题管理功能
+
+- **自动追踪**: AI 自动识别对话中的重要话题
+- **手动管理**: 在设置面板中查看和删除话题
+- **统计信息**: 话题讨论次数、标签分类
+- **数据持久化**: 所有数据本地存储，重启后保留
+
+### 对话特色功能
+
+- **Markdown 渲染**: 支持代码块、列表、标题、引用等格式
+- **Obsidian 集成**: 请求保存时自动生成标准 Markdown 模板
+- **上下文记忆**: 保留对话历史，支持多轮连续对话
+- **错误恢复**: 网络错误后可重试，支持超时处理
 
 ## 精灵图规格
 
