@@ -8,6 +8,18 @@
     pokeFrame:    cfg.pokeFrame    || 70,
     displayScale: cfg.displayScale || 0.7,
     showWindowBorder: false,
+    agentApiKey:   '',
+    agentApiKey2:  '',
+    agentEndpoint: 'https://api.deepseek.com/v1/chat/completions',
+    agentModel:    'deepseek-chat',
+    agentProvider: 'deepseek',
+    enableWebSearch: false,
+  };
+
+  // Provider presets
+  var PROVIDER_PRESETS = {
+    deepseek: { endpoint: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat' },
+    zhihu:    { endpoint: 'https://developer.zhihu.com/v1/chat/completions', model: 'zhida-fast-1p5' },
   };
 
   var menuApps = [];
@@ -34,7 +46,16 @@
     dialogBtn:        document.getElementById('dialogBtn'),
     showWindowBorder: document.getElementById('showWindowBorder'),
     animGrid:         document.getElementById('animGrid'),
+    agentApiKey:      document.getElementById('agentApiKey'),
+    agentApiKey2:     document.getElementById('agentApiKey2'),
+    agentEndpoint:    document.getElementById('agentEndpoint'),
+    agentModel:       document.getElementById('agentModel'),
+    agentProvider:    document.getElementById('agentProvider'),
+    enableWebSearch:  document.getElementById('enableWebSearch'),
+    toggleApiKey:    document.getElementById('toggleApiKey'),
+    toggleApiKey2:   document.getElementById('toggleApiKey2'),
     statusText:       document.getElementById('statusText'),
+    topicList:        document.getElementById('topicList'),
   };
 
   // ---- Label update ----
@@ -54,12 +75,13 @@
 
   // ---- Animation buttons ----
   var ANIMS = [
-    { id: 'twist',      label: '拧巴 → 不拧巴',    icon: '🌀', durationMs: 4000 },
-    { id: 'hula',       label: '穿裙 → 跳舞 → 脱裙', icon: '🌺', durationMs: 6000 },
+    { id: 'twist',      label: '别拧巴了',          icon: '🌀', durationMs: 4000 },
+    { id: 'hula',       label: '草裙舞',              icon: '🌺', durationMs: 6000 },
     { id: 'sneeze',     label: '打喷嚏',            icon: '🤧', durationMs: 2000 },
     { id: 'melt',       label: '热化了',            icon: '☀️', durationMs: 3000 },
     { id: 'sun-toggle', label: '躲太阳',            icon: '🎮', isToggle: true },
-    { id: 'apple',      label: '苹果 → 狐顿',        icon: '🍎', durationMs: 4000 },
+    { id: 'apple',      label: '狐顿',                icon: '🍎', durationMs: 4000 },
+    { id: 'freeze',     label: '冻成冰棍',            icon: '🧊', durationMs: 6000 },
   ];
 
   var animTimers = {};
@@ -140,6 +162,12 @@
       menuApps: menuApps.map(function (a) {
         return { id: a.id, name: a.name, icon: a.icon || '', cmd: a.cmd || '', appPath: a.appPath || '' };
       }),
+      agentApiKey:   els.agentApiKey.value.trim(),
+      agentApiKey2:  els.agentApiKey2.value.trim(),
+      agentEndpoint: els.agentEndpoint.value.trim(),
+      agentModel:    els.agentModel.value.trim(),
+      agentProvider: els.agentProvider.value,
+      enableWebSearch: els.enableWebSearch.checked,
     };
   }
 
@@ -151,6 +179,12 @@
     els.pokeFrame.value        = v.pokeFrame    != null ? v.pokeFrame    : defaults.pokeFrame;
     els.displayScale.value     = v.displayScale != null ? v.displayScale : defaults.displayScale;
     els.showWindowBorder.checked = !!v.showWindowBorder;
+    els.agentApiKey.value     = v.agentApiKey     || '';
+    els.agentApiKey2.value    = v.agentApiKey2    || '';
+    els.agentEndpoint.value   = v.agentEndpoint   || 'https://api.deepseek.com/v1/chat/completions';
+    els.agentModel.value      = v.agentModel      || 'deepseek-chat';
+    els.agentProvider.value   = v.agentProvider   || 'deepseek';
+    els.enableWebSearch.checked = !!v.enableWebSearch;
     if (v.menuApps) menuApps = v.menuApps.slice();
     renderMenuApps();
     updateLabels();
@@ -190,6 +224,65 @@
     renderMenuApps();
     els.statusText.textContent = '已添加 ' + name;
     setTimeout(function () { els.statusText.textContent = ''; }, 2000);
+  });
+
+  // ---- Knowledge base topics ----
+
+  function renderTopics() {
+    if (!window.screenToySettings || !window.screenToySettings.getTopics) return;
+    window.screenToySettings.getTopics(function (topics) {
+      var list = els.topicList;
+      list.innerHTML = '';
+      if (!topics || topics.length === 0) {
+        list.innerHTML = '<div style="font-size:12px;color:#bbb;padding:4px 0;">暂无追踪话题</div>';
+        return;
+      }
+      topics.forEach(function (t) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;background:#fafafa;border-radius:4px;margin-bottom:2px;';
+        var name = document.createElement('span');
+        name.style.cssText = 'font-size:12px;color:#333;flex:1;';
+        name.textContent = t.name + ' (' + (t.conversationCount || 1) + '次)';
+        row.appendChild(name);
+        var del = document.createElement('span');
+        del.style.cssText = 'cursor:pointer;color:#bbb;font-size:13px;';
+        del.textContent = '✕';
+        del.addEventListener('click', function () {
+          if (window.screenToySettings) window.screenToySettings.removeTopic(t.name);
+          renderTopics();
+        });
+        row.appendChild(del);
+        list.appendChild(row);
+      });
+    });
+  }
+
+  // Load topics when settings opens
+  if (window.screenToySettings) {
+    var origOnLoad = window.screenToySettings.onLoad;
+    // render topics on load
+    setTimeout(renderTopics, 200);
+  }
+  function setupApiKeyToggle(btnId, inpId) {
+    var btn = document.getElementById(btnId);
+    var inp = document.getElementById(inpId);
+    if (!btn || !inp) return;
+    btn.addEventListener('click', function () {
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = 'visibility';
+      } else {
+        inp.type = 'password';
+        btn.textContent = 'visibility_off';
+      }
+    });
+  }
+  setupApiKeyToggle('toggleApiKey', 'agentApiKey');
+  setupApiKeyToggle('toggleApiKey2', 'agentApiKey2');
+  els.agentProvider.addEventListener('change', function () {
+    var preset = PROVIDER_PRESETS[els.agentProvider.value];
+    if (preset && preset.endpoint) els.agentEndpoint.value = preset.endpoint;
+    if (preset && preset.model) els.agentModel.value = preset.model;
   });
 
   if (window.screenToySettings) {

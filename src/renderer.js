@@ -13,12 +13,6 @@
   spriteCanvas.height = RobotSprite.HEIGHT;
   var spriteCtx = spriteCanvas.getContext('2d');
 
-  // Airplane offscreen canvas
-  var apCanvas = document.createElement('canvas');
-  apCanvas.width = 200;
-  apCanvas.height = 200;
-  var apCtx = apCanvas.getContext('2d');
-
   // Auto-scale to fit window with padding
   var BASE_SCALE = Math.max(1, Math.min(
     Math.floor((canvas.width - 32) / RobotSprite.WIDTH),
@@ -34,49 +28,61 @@
   // Entrance animation state — starts at 0 so it plays immediately on launch
   var enterFrameIdx   = 0;
   var enterFrameTimer = 0;
-  var ENTER_FRAME_MS  = 80;  // ~12.5 fps, 24 frames ≈ 1.9 s
+  var ENTER_FRAME_MS  = cfg.enterFrameMs  || 80;  // ~12.5 fps, 24 frames ≈ 1.9 s
 
   // Quit animation state
   var quitFrameIdx   = -1;   // -1 = not active; 0..23 = playing; 24+ = finished
   var quitFrameTimer = 0;    // ms accumulator for frame advance
-  var QUIT_FRAME_MS  = 80;   // ~12.5 fps  (24 frames ≈ 1.9 s total)
+  var QUIT_FRAME_MS  = cfg.quitFrameMs  || 80;   // ~12.5 fps  (24 frames ≈ 1.9 s total)
 
   // Twist / Detwist animation state
   // twistPhase: 0 = idle, 1 = twisting (frames 0-23), 2 = detwisting (frames 0-23)
   var twistPhase     = 0;
   var twistFrameIdx  = 0;
   var twistFrameTimer = 0;
-  var TWIST_FRAME_MS = 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase)
-  // Random cooldown before next twist trigger (ms); reset after each twist completes
-  var twistCooldown   = (30 + Math.random() * 30) * 1000;
-  var sneezeCooldown  = (30 + Math.random() * 30) * 1000;
-  var meltCooldown    = (30 + Math.random() * 30) * 1000;
+  var TWIST_FRAME_MS  = cfg.twistFrameMs  || 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase)
+  // Single cooldown timer for all random animations (ms)
+  function resetRandomAnimCooldown() {
+    return ((cfg.animCooldownMinSec || 25) + Math.random() * ((cfg.animCooldownMaxSec || 60) - (cfg.animCooldownMinSec || 25))) * 1000;
+  }
+  var randomAnimCooldown = resetRandomAnimCooldown();
 
   // Hula animation state
   // hulaPhase: 0 = idle, 1 = wearing, 2 = dancing, 3 = removing
   var hulaPhase      = 0;
   var hulaFrameIdx   = 0;
   var hulaFrameTimer = 0;
-  var HULA_FRAME_MS  = 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase, ~5.7 s total)
+  var HULA_FRAME_MS  = cfg.hulaFrameMs   || 80;   // ~12.5 fps (24 frames ≈ 1.9 s per phase, ~5.7 s total)
 
   // Sneeze animation state
   var sneezeActive    = false;
   var sneezeFrameIdx  = 0;
   var sneezeFrameTimer = 0;
-  var SNEEZE_FRAME_MS = 80;  // ~12.5 fps (24 frames ≈ 1.9 s)
+  var SNEEZE_FRAME_MS = cfg.sneezeFrameMs || 80;  // ~12.5 fps (24 frames ≈ 1.9 s)
+
+  var okActive      = false;
+  var okFrameIdx    = 0;
+  var okFrameTimer  = 0;
+  var OK_FRAME_MS   = cfg.okFrameMs    || 80;
 
   // Melt animation state
   var meltActive     = false;
   var meltFrameIdx   = 0;
   var meltFrameTimer = 0;
-  var MELT_FRAME_MS  = 120;  // slower: 24 frames ≈ 2.9 s
+  var MELT_FRAME_MS  = cfg.meltFrameMs  || 120;  // slower: 24 frames ≈ 2.9 s
+
+  // freezePhase: 0=idle, 1=freezing, 2=thawing
+  var freezePhase     = 0;
+  var freezeFrameIdx  = 0;
+  var freezeFrameTimer = 0;
+  var FREEZE_FRAME_MS = 120;
 
   // Apple-hit + Hudun (recovery) animation — play in sequence
   // applePhase: 0=idle, 1=苹果 playing, 2=狐顿 playing
   var applePhase     = 0;
   var appleFrameIdx  = 0;
   var appleFrameTimer = 0;
-  var APPLE_FRAME_MS = 80;
+  var APPLE_FRAME_MS = cfg.appleFrameMs || 80;
 
   // ── Sun-dodge mini-game ───────────────────────────────────────────────────
   var sunGameActive    = false;
@@ -163,11 +169,19 @@
 
     // Listen for API bubble (from dialog)
     window.screenToy.onApiBubble(function (text) {
+      // Suppress bubble during special animations
+      if (twistPhase > 0 || hulaPhase > 0 || sneezeActive || meltActive || freezePhase > 0 || applePhase > 0 || sunGameActive) return;
       behavior._triggerApiBubble(text);
+      if (!okActive && !sneezeActive && !meltActive && hulaPhase === 0 && twistPhase === 0) {
+        okActive = true; okFrameIdx = 0; okFrameTimer = 0;
+      }
     });
 
     // Trigger named animation immediately (e.g. from settings panel)
     window.screenToy.onTriggerAnimation(function (name) {
+      // Suppress during active bubbles
+      if (behavior.anim._bubbleText || (behavior.anim._bubbleQueue && behavior.anim._bubbleQueue.length > 0) || behavior.bubbleQueue.length > 0) return;
+
       if (name === 'twist' && twistPhase === 0 && hulaPhase === 0 && !sneezeActive) {
         twistPhase = 1;
         twistFrameIdx = 0;
@@ -184,6 +198,10 @@
         meltActive = true;
         meltFrameIdx = 0;
         meltFrameTimer = 0;
+      } else if (name === 'freeze' && freezePhase === 0 && !meltActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive) {
+        freezePhase = 1;
+        freezeFrameIdx = 0;
+        freezeFrameTimer = 0;
       } else if (name === 'apple' && applePhase === 0 && hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive) {
         applePhase = 1;
         appleFrameIdx = 0;
@@ -430,6 +448,19 @@
         sneezeFrameTimer = 0;
       }
     }
+    if (okActive) {
+      okFrameTimer += dt * 1000;
+      var OKTOTAL = window.OkSprite ? window.OkSprite.FRAME_COUNT : 24;
+      while (okFrameTimer >= OK_FRAME_MS && okFrameIdx < OKTOTAL) {
+        okFrameTimer -= OK_FRAME_MS;
+        okFrameIdx++;
+      }
+      if (okFrameIdx >= OKTOTAL) {
+        okActive = false;
+        okFrameIdx = 0;
+        okFrameTimer = 0;
+      }
+    }
     // ───────────────────────────────────────────────────────────────────────
 
     // ── Apple-hit → Hudun sequence ─────────────────────────────────────────
@@ -468,6 +499,26 @@
     }
     // ───────────────────────────────────────────────────────────────────────
 
+    // ── Freeze → Thaw animation ────────────────────────────────────────────
+    if (freezePhase > 0) {
+      freezeFrameTimer += dt * 1000;
+      var FZTOTAL = freezePhase === 1
+        ? (window.FreezeSprite ? window.FreezeSprite.FRAME_COUNT : 24)
+        : (window.ThawSprite   ? window.ThawSprite.FRAME_COUNT   : 24);
+      while (freezeFrameTimer >= FREEZE_FRAME_MS && freezeFrameIdx < FZTOTAL) {
+        freezeFrameTimer -= FREEZE_FRAME_MS;
+        freezeFrameIdx++;
+      }
+      if (freezeFrameIdx >= FZTOTAL) {
+        if (freezePhase === 1) {
+          freezePhase = 2; freezeFrameIdx = 0; freezeFrameTimer = 0;
+        } else {
+          freezePhase = 0; freezeFrameIdx = 0; freezeFrameTimer = 0;
+        }
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     // ── Twist / Detwist animation ──────────────────────────────────────────
     if (twistPhase > 0) {
       twistFrameTimer += dt * 1000;
@@ -483,40 +534,38 @@
           twistFrameIdx = 0;
           twistFrameTimer = 0;
         } else {
-          // Detwist complete — back to idle, reset cooldown
+          // Detwist complete — back to idle
           twistPhase = 0;
           twistFrameIdx = 0;
           twistFrameTimer = 0;
-          twistCooldown = (30 + Math.random() * 30) * 1000;
+          randomAnimCooldown = (25 + Math.random() * 35) * 1000;
         }
       }
     } else {
-      // Count down to next twist / sneeze / melt (only when awake, not dragging, not sleeping)
+      // Single cooldown → pick one random animation from pool
       var canAutoAnim = !isDragging && !behavior.isSleeping() && behavior.state !== 'waking_up' && !sunGameActive;
       if (canAutoAnim) {
-        var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive;
-        // Twist
+        var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive && twistPhase === 0 && applePhase === 0;
         if (noOtherAnim) {
-          twistCooldown -= dt * 1000;
-          if (twistCooldown <= 0 && window.TwistSprite && window.TwistSprite.loaded() &&
-              window.DetwistSprite && window.DetwistSprite.loaded()) {
-            twistPhase = 1; twistFrameIdx = 0; twistFrameTimer = 0;
-          }
-        }
-        // Sneeze
-        if (twistPhase === 0 && hulaPhase === 0 && !meltActive) {
-          sneezeCooldown -= dt * 1000;
-          if (sneezeCooldown <= 0 && window.SneezeSprite && window.SneezeSprite.loaded()) {
-            sneezeActive = true; sneezeFrameIdx = 0; sneezeFrameTimer = 0;
-            sneezeCooldown = (30 + Math.random() * 30) * 1000;
-          }
-        }
-        // Melt
-        if (twistPhase === 0 && hulaPhase === 0 && !sneezeActive) {
-          meltCooldown -= dt * 1000;
-          if (meltCooldown <= 0 && window.MeltSprite && window.MeltSprite.loaded()) {
-            meltActive = true; meltFrameIdx = 0; meltFrameTimer = 0;
-            meltCooldown = (30 + Math.random() * 30) * 1000;
+          randomAnimCooldown -= dt * 1000;
+          if (randomAnimCooldown <= 0) {
+            // Pool of available animations (name → [trigger fn, sprite check])
+            var pool = [];
+            if (window.TwistSprite && window.TwistSprite.loaded() && window.DetwistSprite && window.DetwistSprite.loaded())
+              pool.push(function() { twistPhase = 1; twistFrameIdx = 0; twistFrameTimer = 0; });
+            if (window.SneezeSprite && window.SneezeSprite.loaded())
+              pool.push(function() { sneezeActive = true; sneezeFrameIdx = 0; sneezeFrameTimer = 0; });
+            if (window.MeltSprite && window.MeltSprite.loaded())
+              pool.push(function() { meltActive = true; meltFrameIdx = 0; meltFrameTimer = 0; });
+            if (window.HulaWearSprite && window.HulaWearSprite.loaded())
+              pool.push(function() { hulaPhase = 1; hulaFrameIdx = 0; hulaFrameTimer = 0; });
+            if (window.AppleSprite && window.AppleSprite.loaded())
+              pool.push(function() { applePhase = 1; appleFrameIdx = 0; appleFrameTimer = 0; });
+
+            if (pool.length > 0) {
+              pool[Math.floor(Math.random() * pool.length)]();
+          randomAnimCooldown = resetRandomAnimCooldown();
+            }
           }
         }
       }
@@ -539,7 +588,7 @@
     }
 
     // Update behavior (state machine) — frozen during special animations or sun game
-    if (hulaPhase === 0 && !sneezeActive && !meltActive && !sunGameActive && applePhase === 0) {
+    if (hulaPhase === 0 && !sneezeActive && !meltActive && freezePhase === 0 && !sunGameActive && applePhase === 0 && twistPhase === 0) {
       behavior.update(dt, mouseScreen, sb);
     }
 
@@ -627,15 +676,21 @@
     }
     // ─────────────────────────────────────────────────────────────────────
 
-    // Check for bubble triggers
-    if (behavior.anim._bubbleText && window.screenToy) {
-      window.screenToy.showBubble({ text: behavior.anim._bubbleText, wait: 3000 });
+    // Check for bubble triggers (suppress during special animations)
+    var animRunning = twistPhase > 0 || hulaPhase > 0 || sneezeActive || meltActive || freezePhase > 0 || applePhase > 0 || sunGameActive;
+    if (!animRunning) {
+      if (behavior.anim._bubbleText && window.screenToy) {
+        window.screenToy.showBubble({ text: behavior.anim._bubbleText, wait: 3000 });
+        behavior.anim._bubbleText = null;
+      }
+      if (behavior.anim._bubbleQueue && behavior.anim._bubbleQueue.length > 0 && window.screenToy) {
+        window.screenToy.showBubble({ queue: behavior.anim._bubbleQueue });
+        behavior.anim._bubbleQueue = null;
+      }
+    } else {
+      // Discard bubbles queued during animation
       behavior.anim._bubbleText = null;
-    }
-    if (behavior.anim._bubbleQueue && behavior.anim._bubbleQueue.length > 0 && window.screenToy) {
-      window.screenToy.showBubble({ queue: behavior.anim._bubbleQueue });
       behavior.anim._bubbleQueue = null;
-      // bubbleQueue stays non-empty until onBubbleDone fires, blocking new bubbles
     }
 
     // Sync window position to robot position
@@ -728,6 +783,19 @@
         var meltOy = Math.max(0, Math.round(oy + dH - meltSize));
         window.MeltSprite.drawDirect(ctx, meltFrameToShow, meltOx, meltOy, meltSize, meltSize);
       }
+    } else if (freezePhase > 0) {
+      var freezeSprite = freezePhase === 1 ? window.FreezeSprite : window.ThawSprite;
+      if (freezeSprite) {
+        var freezeFrameToShow = Math.min(freezeFrameIdx, freezeSprite.FRAME_COUNT - 1);
+        var freezeSize = Math.min(
+          Math.round(Math.min(dW, dH) * 1.22),
+          canvas.width - 4,
+          canvas.height - 4
+        );
+        var freezeOx = Math.round(canvas.width  / 2 - freezeSize / 2);
+        var freezeOy = Math.max(0, Math.round(oy + dH - freezeSize));
+        freezeSprite.drawDirect(ctx, freezeFrameToShow, freezeOx, freezeOy, freezeSize, freezeSize);
+      }
     } else if (applePhase > 0) {
       var appleFrameToShow = Math.min(appleFrameIdx, (applePhase === 1 ? window.AppleSprite : window.HudunSprite || window.AppleSprite).FRAME_COUNT - 1);
       var appleSprite = applePhase === 1 ? window.AppleSprite : window.HudunSprite;
@@ -737,6 +805,15 @@
         var appleOx = Math.round(canvas.width  / 2 - appleDW / 2);
         var appleOy = Math.round(canvas.height / 2 - appleDH / 2);
         appleSprite.drawDirect(ctx, appleFrameToShow, appleOx, appleOy, appleDW, appleDH);
+      }
+    } else if (okActive) {
+      var okFrameToShow = Math.min(okFrameIdx, (window.OkSprite ? window.OkSprite.FRAME_COUNT : 24) - 1);
+      if (window.OkSprite) {
+        var okDW = Math.round(dW * 1.2);
+        var okDH = Math.round(dH * 1.2);
+        var okOx = Math.round(canvas.width  / 2 - okDW / 2);
+        var okOy = Math.round(canvas.height / 2 - okDH / 2);
+        window.OkSprite.drawDirect(ctx, okFrameToShow, okOx, okOy, okDW, okDH);
       }
     } else if (twistPhase > 0) {
       var twistFrameToShow = Math.min(twistFrameIdx, (window.TwistSprite ? window.TwistSprite.FRAME_COUNT : 24) - 1);
@@ -783,17 +860,6 @@
         ctx.fillText(sunResultText, canvas.width / 2, canvas.height - 6);
         ctx.restore();
       }
-    }
-
-    // Draw airplane if active
-    var ap = behavior.airplane;
-    if (ap.active && window.AirplaneSprite && window.AirplaneSprite.loaded()) {
-      var apSize = 200;
-      AirplaneSprite.draw(apCtx, ap.direction, apSize, apSize);
-      // Convert airplane screen position to window-relative
-      var apWinX = ap.x - behavior.screenX + canvas.width / 2 - apSize / 2;
-      var apWinY = ap.y - behavior.screenY + canvas.height / 2 - apSize / 2;
-      ctx.drawImage(apCanvas, 0, 0, apSize, apSize, apWinX, apWinY, apSize, apSize);
     }
 
     requestAnimationFrame(loop);

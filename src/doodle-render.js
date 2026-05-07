@@ -29,30 +29,6 @@
     },
   };
 
-  // ---- Airplane config (individual images) ----
-  var apFolder = cfg.airplaneFolder || 'paper_plane';
-  var apPath = 'assets/doodles/' + apFolder + '/';
-
-  var AIRPLANE = {
-    images: {},
-    loaded: false,
-  };
-
-  var apLoadCount = 0;
-  var apFiles = [
-    { name: 'E', file: 'right.png' },
-    { name: 'W', file: 'left.png' },
-  ];
-  apFiles.forEach(function (d) {
-    var img = new Image();
-    img.onload = function () {
-      AIRPLANE.images[d.name] = this;
-      apLoadCount++;
-      if (apLoadCount === apFiles.length) AIRPLANE.loaded = true;
-    };
-    img.src = apPath + d.file;
-  });
-
   var DISPLAY_W = 120;
   var DISPLAY_H = 100;
 
@@ -212,20 +188,6 @@
     }
   }
 
-  // ---- Draw airplane (on a separate canvas, at absolute position) ----
-  function drawAirplane(ctx, direction, w, h) {
-    if (!AIRPLANE.loaded) return;
-    var img = AIRPLANE.images[direction] || AIRPLANE.images['E'];
-    if (!img) return;
-    ctx.clearRect(0, 0, w, h);
-    // Scale image to fit
-    var aspect = img.width / img.height;
-    var dw, dh;
-    if (aspect > w / h) { dw = w; dh = w / aspect; }
-    else { dh = h; dw = h * aspect; }
-    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
-  }
-
   // ---- Quit animation sheet (6 cols × 4 rows = 24 frames, 256×256 each) ----
   var QUIT_COLS = 6, QUIT_ROWS = 4;
   var QUIT_FRAME_W = 256, QUIT_FRAME_H = 256;
@@ -267,11 +229,6 @@
     WIDTH: DISPLAY_W,
     HEIGHT: DISPLAY_H,
     draw: drawDog,
-  };
-
-  window.AirplaneSprite = {
-    draw: drawAirplane,
-    loaded: function () { return AIRPLANE.loaded; },
   };
 
   // Draw a quit frame directly into any ctx at a specified destination rect.
@@ -425,4 +382,7 @@
   window.MeltSprite       = makeSprite('melt_sheet.png',  6, 256, 256, 24);
   window.AppleSprite      = makeSprite('apple_sheet.png', 6, 256, 256, 24);
   window.HudunSprite      = makeSprite('hudun_sheet.png', 6, 256, 256, 24);
+  window.OkSprite         = makeSprite('ok_sheet.png',    6, 256, 256, 24);
+  window.FreezeSprite     = makeSprite('freeze_sheet.png', 6, 256, 256, 24);
+  window.ThawSprite       = makeSprite('thaw_sheet.png',   6, 256, 256, 24);
 })();

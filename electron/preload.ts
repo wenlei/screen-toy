@@ -91,6 +91,16 @@ contextBridge.exposeInMainWorld('screenToySettings', {
   onInstalledApps: (callback: (apps: string[]) => void) => {
     ipcRenderer.on('installed-apps', (_event, apps) => callback(apps));
   },
+  // Knowledge base
+  getTopics: (callback: (topics: any[]) => void) => {
+    ipcRenderer.invoke('kb-get-topics').then(function (topics) { callback(topics); });
+  },
+  removeTopic: (name: string) => {
+    ipcRenderer.send('kb-remove-topic', name);
+  },
+  requestTopics: () => {
+    ipcRenderer.send('kb-request-topics');
+  },
 });
 
 contextBridge.exposeInMainWorld('screenToyMenu', {
@@ -122,8 +132,21 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
   send: (msg: string) => {
     ipcRenderer.send('dialog-send', msg);
   },
+  clear: () => {
+    ipcRenderer.send('dialog-clear');
+  },
   triggerBubble: (text: string) => {
     ipcRenderer.send('dialog-bubble', text);
+  },
+  // Knowledge base
+  saveConversation: (record: any) => {
+    ipcRenderer.send('kb-save-conversation', record);
+  },
+  getConversations: (callback: (convos: any[]) => void) => {
+    ipcRenderer.on('kb-conversations', (_event, convos) => callback(convos));
+  },
+  extractTopics: (messages: any[], callback: (result: string) => void) => {
+    ipcRenderer.on('kb-topics-result', (_event, result) => callback(result));
   },
 });
 

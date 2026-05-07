@@ -1,29 +1,55 @@
 (function () {
   var wrapper = document.getElementById('wrapper');
-  var canvas  = document.getElementById('bc');
-  var ctx     = canvas.getContext('2d');
   var textEl  = document.getElementById('textEl');
 
-  var TAIL_H   = 18;
-  var TAIL_RX  = 0.63; // tail tip x as fraction of bubble width
-  var MIN_W    = 110;
-  var MAX_INNER_W = 210;
-  var FONT     = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+  // Speech bubble image native dimensions: 272×177
+  // Usable content area fractions (excludes border + tail at bottom):
+  var PAD_X_FRAC   = 0.12;  // each side horizontal
+  var PAD_TOP_FRAC = 0.12;
+  var PAD_BOT_FRAC = 0.30;  // tail (≈18%) + margin
+  var IMG_RATIO    = 177 / 272; // H/W of source image
+  var MIN_W        = 180;
+  var MAX_W        = 340;
+  var LINE_H       = 21;
+  var FONT         = '13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif';
 
   var queue        = [];
   var currentIndex = 0;
   var hideTimer    = null;
 
-  // ── Measure & wrap text ──────────────────────────────────────────────────
+  // ---- Markdown → HTML (lightweight) ----
+  function md2html(text) {
+    var html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    html = html.replace(/\*(.+?)\*/g, '<i>$1</i>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\n\n/g, '<br><br>');
+    return html;
+  }
+
+  function stripMd(text) {
+    return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '').replace(/\n\n/g, '\n');
+  }
+
+  function measureTextWidth(text) {
+    var mc = document.createElement('canvas').getContext('2d');
+    mc.font = FONT;
+    return mc.measureText(text).width;
+  }
+
   function wrapText(text, maxW) {
     var mc = document.createElement('canvas').getContext('2d');
     mc.font = FONT;
     var lines = [], line = '';
-    for (var i = 0; i < text.length; i++) {
-      var t = line + text[i];
+    var words = text.split('');
+    for (var i = 0; i < words.length; i++) {
+      var t = line + words[i];
       if (mc.measureText(t).width > maxW && line.length > 0) {
         lines.push(line);
-        line = text[i];
+        line = words[i];
       } else {
         line = t;
       }
@@ -33,63 +59,47 @@
   }
 
   function calcSize(text) {
-    var mc = document.createElement('canvas').getContext('2d');
-    mc.font = FONT;
-    var rawW   = mc.measureText(text).width;
-    var innerW = Math.min(rawW + 4, MAX_INNER_W);
-    var lines  = wrapText(text, innerW);
-    var w = Math.max(MIN_W, Math.round(innerW + 44));
-    var h = Math.round(lines.length * 19 + 28 + TAIL_H);
-    return { w: w, h: h };
+    var plain   = stripMd(text);
+    var rawW    = measureTextWidth(plain);
+    // Bubble width: wide enough for text, clamped
+    var W = Math.max(MIN_W, Math.min(MAX_W, rawW / (1 - PAD_X_FRAC * 2) + 4));
+    var innerW  = W * (1 - PAD_X_FRAC * 2);
+    var lines   = wrapText(plain, innerW);
+    var textH   = lines.length * LINE_H + 8;
+    // Bubble height: at least aspect-ratio height, grows to fit text
+    var H_ratio = W * IMG_RATIO;
+    var H_text  = textH / (1 - PAD_TOP_FRAC - PAD_BOT_FRAC);
+    var H = Math.max(H_ratio, H_text);
+    return { w: Math.round(W), h: Math.round(H) };
   }
 
-  // ── Draw the speech bubble ───────────────────────────────────────────────
-  function drawBubble(w, h) {
-    canvas.width  = w;
-    canvas.height = h;
-    wrapper.style.width  = w + 'px';
-    wrapper.style.height = h + 'px';
-    textEl.style.height  = (h - TAIL_H) + 'px';
-
-    var ovalH = h - TAIL_H;
-    var rx = w / 2 - 2, ry = ovalH / 2 - 2;
-    var cx = w / 2, cy = ovalH / 2;
-    var tx = Math.round(w * TAIL_RX);
-    var tw = 18;
-    var tipX = tx + tw * 0.5;
-    var tipY = h - 2;
-
-    // Parametric angles where tail meets ellipse bottom arc
-    var cos1 = Math.max(-1, Math.min(1, (tx - cx) / rx));
-    var cos2 = Math.max(-1, Math.min(1, (tx + tw - cx) / rx));
-    var a1 = Math.atan2(Math.sqrt(1 - cos1 * cos1), cos1);   // left connection
-    var a2 = Math.atan2(Math.sqrt(1 - cos2 * cos2), cos2);   // right connection
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Single unified path: big arc (skipping tail base) + tail sides
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, a2, a1, true); // counterclockwise, skips tail opening
-    ctx.lineTo(tipX, tipY);                         // left edge → tip
-    ctx.closePath();                                 // tip → right edge (back to a2)
-
-    ctx.fillStyle = '#F7F7F8';
-    ctx.fill();
-    ctx.strokeStyle = '#D0D0D4';
-    ctx.lineWidth   = 1.2;
-    ctx.stroke();
-  }
-
-  // ── Show / hide ──────────────────────────────────────────────────────────
   function show(text, wait) {
     clearTimeout(hideTimer);
     var size = calcSize(text);
-    drawBubble(size.w, size.h);
-    textEl.textContent = text;
+    var W = size.w, H = size.h;
+
+    wrapper.style.width  = W + 'px';
+    wrapper.style.height = H + 'px';
+
+    // Position text area inside bubble (avoid tail at bottom)
+    var padL = Math.round(W * PAD_X_FRAC);
+    var padR = Math.round(W * PAD_X_FRAC);
+    var padT = Math.round(H * PAD_TOP_FRAC);
+    var padB = Math.round(H * PAD_BOT_FRAC);
+
+    textEl.style.position = 'absolute';
+    textEl.style.left     = padL + 'px';
+    textEl.style.right    = padR + 'px';
+    textEl.style.top      = padT + 'px';
+    textEl.style.bottom   = padB + 'px';
+
+    textEl.innerHTML = md2html(text);
+
     if (window.bubbleAPI && window.bubbleAPI.resize) {
-      window.bubbleAPI.resize(size.w, size.h);
+      window.bubbleAPI.resize(W, H);
     }
     wrapper.classList.add('visible');
+
     hideTimer = setTimeout(function () {
       wrapper.classList.remove('visible');
       setTimeout(function () {
@@ -127,15 +137,12 @@
     });
     window.bubbleAPI.onHide(hide);
     window.bubbleAPI.onNext(showNext);
+    window.bubbleAPI.onBorder(function (s) {
+      document.getElementById('winBorder').style.display = s ? 'block' : 'none';
+    });
   }
 
   window.bubbleShow      = show;
   window.bubbleShowQueue = showQueue;
   window.bubbleHide      = hide;
-
-  if (window.bubbleAPI) {
-    window.bubbleAPI.onBorder(function (s) {
-      document.getElementById('winBorder').style.display = s ? 'block' : 'none';
-    });
-  }
 })();

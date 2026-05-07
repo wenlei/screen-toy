@@ -27,18 +27,7 @@
     this.blinkDuration = 0.12;
     this.flyTimer = 0;
     this.flyDir = 0;
-
-    // Independent airplane
-    this.airplane = {
-      active: false,
-      x: 0, y: 0,
-      startX: 0, startY: 0,
-      endX: 0, endY: 0,
-      arcHeight: 200,
-      timer: 0,
-      duration: 2.5,
-      direction: 'E',
-    };
+    this.movementLocked = false;
 
     // Bubble
     var cfg2 = window.__CONFIG || {};
@@ -137,7 +126,6 @@
     this._updateBlink(dt);
     this._updateBubble(dt);
     this._updateScheduled(dt);
-    this._updateAirplane(dt);
 
     // Pass state info to sprite for frame selection
     this.anim.elapsed = this.robot.elapsed * 1000;
@@ -158,8 +146,9 @@
     this.anim.frameDuration = this.settings.idleFrame;
 
     if (this.stateTimer <= 0) {
-      // Transition: randomly wander or sit
-      if (Math.random() < 0.7) {
+      if (this.movementLocked) {
+        this.stateTimer = rand(2.0, 4.0); // stay idle
+      } else if (Math.random() < 0.7) {
         this._startWander(screenBounds);
       } else {
         this._startSit();
@@ -168,6 +157,12 @@
   };
 
   Behavior.prototype._updateWander = function (dt, mouseScreen, screenBounds) {
+    if (this.movementLocked) {
+      this.vx = 0;
+      this.vy = 0;
+      this._startIdle();
+      return;
+    }
     this.stateTimer -= dt;
 
     // Move in wander direction
@@ -228,7 +223,6 @@
     this.anim.frameDuration = this.settings.sitFrame;
 
     if (this.stateTimer <= 0 && !this._sitLocked) {
-      this._trySpawnAirplane();
       this._startIdle();
     }
   };
@@ -303,53 +297,6 @@
     this.anim.squish = 0;
   };
 
-  // ---- Airplane (independent object) ----
-
-  Behavior.prototype._trySpawnAirplane = function () {
-    if (this.airplane.active) return;
-    if (Math.random() > 0.2) return; // 20% chance
-
-    var screenW = typeof screen !== 'undefined' ? screen.width : 1440;
-    var screenH = typeof screen !== 'undefined' ? screen.height : 900;
-
-    // Spawn from dog's current position
-    this.airplane.startX = this.screenX;
-    this.airplane.startY = this.screenY;
-
-    // Fly to a random edge
-    var edge = Math.floor(Math.random() * 4);
-    switch (edge) {
-      case 0: this.airplane.endX = screenW + 100; this.airplane.endY = rand(100, screenH - 100); break;
-      case 1: this.airplane.endX = -100; this.airplane.endY = rand(100, screenH - 100); break;
-      case 2: this.airplane.endX = rand(100, screenW - 100); this.airplane.endY = -100; break;
-      case 3: this.airplane.endX = rand(100, screenW - 100); this.airplane.endY = screenH + 100; break;
-    }
-
-    // Direction based on horizontal movement
-    this.airplane.direction = (this.airplane.endX > this.airplane.startX) ? 'E' : 'W';
-
-    this.airplane.arcHeight = rand(150, 300);
-    this.airplane.duration = rand(2.0, 3.5);
-    this.airplane.timer = 0;
-    this.airplane.active = true;
-  };
-
-  Behavior.prototype._updateAirplane = function (dt) {
-    var ap = this.airplane;
-    if (!ap.active) return;
-
-    ap.timer += dt;
-    var t = Math.min(ap.timer / ap.duration, 1);
-
-    // Parabolic arc: x linear, y with sine arc
-    ap.x = ap.startX + (ap.endX - ap.startX) * t;
-    ap.y = ap.startY + (ap.endY - ap.startY) * t - ap.arcHeight * Math.sin(Math.PI * t);
-
-    if (t >= 1) {
-      ap.active = false;
-    }
-  };
-
   // ---- Bubble logic ----
 
   var SLEEP_FPS = 8;
@@ -413,6 +360,7 @@
   Behavior.prototype._updateBubble = function (dt) {
     if (this._sitLocked) return;
     if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP || this.state === State.WAKING_UP) return;
+    if (this.state !== State.IDLE && this.state !== State.SIT) return; // only idle/sit
     if (this.bubbleQueue.length > 0) return;
     this.bubbleTimer -= dt * 1000;
     if (this.bubbleTimer <= 0) {
@@ -424,6 +372,7 @@
   Behavior.prototype._updateScheduled = function (dt) {
     if (this._sitLocked) return;
     if (this.state === State.SLEEPING || this.state === State.FALLING_ASLEEP || this.state === State.WAKING_UP) return;
+    if (this.state !== State.IDLE && this.state !== State.SIT) return; // only idle/sit
     if (this.bubbleQueue.length > 0) return;
 
     this.scheduledCheckTimer -= dt;
