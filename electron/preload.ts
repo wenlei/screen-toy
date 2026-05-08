@@ -64,9 +64,6 @@ contextBridge.exposeInMainWorld('screenToySettings', {
   apply: (settings: any) => {
     ipcRenderer.send('apply-settings', settings);
   },
-  onBorder: (callback: (show: boolean) => void) => {
-    ipcRenderer.on('window-border', (_event, show) => callback(show));
-  },
   onLoad: (callback: (settings: any) => void) => {
     ipcRenderer.on('settings-current', (_event, settings) => callback(settings));
   },
@@ -91,24 +88,17 @@ contextBridge.exposeInMainWorld('screenToySettings', {
   onInstalledApps: (callback: (apps: string[]) => void) => {
     ipcRenderer.on('installed-apps', (_event, apps) => callback(apps));
   },
-  // Knowledge base
-  getTopics: (callback: (topics: any[]) => void) => {
-    ipcRenderer.invoke('kb-get-topics').then(function (topics) { callback(topics); });
+  openApiPage: () => {
+    ipcRenderer.send('open-api-page');
   },
-  removeTopic: (name: string) => {
-    ipcRenderer.send('kb-remove-topic', name);
-  },
-  requestTopics: () => {
-    ipcRenderer.send('kb-request-topics');
+  saveHotlistToHistory: (text: string) => {
+    ipcRenderer.send('save-hotlist-to-history', text);
   },
 });
 
 contextBridge.exposeInMainWorld('screenToyMenu', {
   select: (action: string) => {
     ipcRenderer.send('menu-action', action);
-  },
-  onBorder: (callback: (show: boolean) => void) => {
-    ipcRenderer.on('window-border', (_event, show) => callback(show));
   },
   // data can be { apps: [...], windowH: N } or legacy plain array
   onApps: (callback: (data: any) => void) => {
@@ -123,11 +113,14 @@ contextBridge.exposeInMainWorld('screenToyMenu', {
 });
 
 contextBridge.exposeInMainWorld('screenToyDialog', {
-  onBorder: (callback: (show: boolean) => void) => {
-    ipcRenderer.on('window-border', (_event, show) => callback(show));
-  },
   onReceive: (callback: (msg: string) => void) => {
     ipcRenderer.on('dialog-message', (_event, msg: string) => callback(msg));
+  },
+  onChunk: (callback: (chunk: string) => void) => {
+    ipcRenderer.on('dialog-chunk', (_event, chunk: string) => callback(chunk));
+  },
+  onConversationId: (callback: (id: string) => void) => {
+    ipcRenderer.on('dialog-conversation-id', (_event, id: string) => callback(id));
   },
   send: (msg: string) => {
     ipcRenderer.send('dialog-send', msg);
@@ -138,22 +131,21 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
   triggerBubble: (text: string) => {
     ipcRenderer.send('dialog-bubble', text);
   },
-  // Knowledge base
-  saveConversation: (record: any) => {
-    ipcRenderer.send('kb-save-conversation', record);
+  getHotList: () => {
+    return ipcRenderer.invoke('zhihu-hot-list');
   },
-  getConversations: (callback: (convos: any[]) => void) => {
-    ipcRenderer.on('kb-conversations', (_event, convos) => callback(convos));
+  getConversationList: () => {
+    return ipcRenderer.invoke('conversation-list');
   },
-  extractTopics: (messages: any[], callback: (result: string) => void) => {
-    ipcRenderer.on('kb-topics-result', (_event, result) => callback(result));
+  loadConversation: (id: string) => {
+    return ipcRenderer.invoke('conversation-load', id);
+  },
+  deleteConversation: (id: string) => {
+    return ipcRenderer.invoke('conversation-delete', id);
   },
 });
 
 contextBridge.exposeInMainWorld('bubbleAPI', {
-  onBorder: (callback: (show: boolean) => void) => {
-    ipcRenderer.on('window-border', (_event, show) => callback(show));
-  },
   onShow: (callback: (data: any) => void) => {
     ipcRenderer.on('bubble-show', (_event, data) => callback(data));
   },

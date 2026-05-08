@@ -359,8 +359,11 @@
     if (!apps || apps.length === 0) {
       var empty = document.createElement('div');
       empty.className = 'item';
-      empty.style.cssText = 'color:#bbb;cursor:default;';
+      empty.style.cssText = 'color:#bbb;cursor:pointer;';
       empty.innerHTML = '<span class="icon">📭</span><span class="label">去设置添加应用</span>';
+      empty.addEventListener('click', function () {
+        if (window.screenToyMenu) window.screenToyMenu.select('open-settings');
+      });
       menuEl.appendChild(empty);
     } else {
       apps.forEach(function (app) { addItem(app); });

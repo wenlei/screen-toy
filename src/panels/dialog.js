@@ -2,10 +2,15 @@
   var msgs = document.getElementById('msgs');
   var input = document.getElementById('input');
   var sendBtn = document.getElementById('sendBtn');
+  var searchTypeEl = document.getElementById('searchType');
   var waiting = false;
+  var streamingEl = null;
+  var streamingText = '';
 
   // ---- Minimal Markdown → HTML ----
   function md2html(text) {
+    if (!text) return '';
+    
     // Escape HTML first
     var html = text
       .replace(/&/g, '&amp;')
@@ -35,13 +40,31 @@
     html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
 
-    // Ordered lists (1. 2. etc)
-    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    // Ordered lists (1. 2. etc) — convert to <li> and collect
+    var orderedItems = [];
+    html = html.replace(/^\d+\.\s+(.+)$/gm, function (_, text) {
+      orderedItems.push(text);
+      return '___OL_ITEM___';
+    });
     // Wrap consecutive <li> groups that aren't already in <ul>
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, function (match) {
       if (match.indexOf('<ul>') === -1) return '<ol>' + match + '</ol>';
       return match;
     });
+    // Replace collected ordered items into a single <ol> at the top
+    if (orderedItems.length > 0) {
+      var olHtml = '<ol>';
+      orderedItems.forEach(function (item, i) {
+        olHtml += '<li>' + (i + 1) + '. ' + item + '</li>';
+      });
+      olHtml += '</ol>';
+      html = html.replace(/___OL_ITEM___(\n?)*/g, '');
+      // Insert the <ol> after the first paragraph or heading
+      var insertPos = html.indexOf('<p>');
+      if (insertPos === -1) insertPos = html.indexOf('<h');
+      if (insertPos === -1) insertPos = 0;
+      html = html.slice(0, insertPos) + olHtml + html.slice(insertPos);
+    }
 
     // Horizontal rules
     html = html.replace(/^---$/gm, '<hr>');
@@ -49,8 +72,32 @@
     // Blockquotes
     html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
 
-    // Paragraphs: double newlines
-    html = html.replace(/\n\n+/g, '</p><p>');
+    // Markdown links [text](url) → <a> (must run before bare URL transform)
+    // Handle fallback: [🔗 来源](url) → [域名](url)
+    html = html.replace(/\[🔗\s*来源\]\(([^)]+)\)/g, function (_, url) {
+      try {
+        var domain = new URL(url).hostname;
+        return '<a href="' + url + '" target="_blank" rel="noopener" style="color:#007AFF;text-decoration:underline;">🔗 ' + domain + '</a>';
+      } catch (e) {
+        return '<a href="' + url + '" target="_blank" rel="noopener" style="color:#007AFF;text-decoration:underline;">🔗 来源</a>';
+      }
+    });
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, text, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener" style="color:#007AFF;text-decoration:underline;">' + text + '</a>';
+    });
+
+    // URLs → clickable links (skip URLs already inside HTML attributes)
+    html = html.replace(/(?<!["=])(https?:\/\/[^\s<>"')\]]+)/g, function (url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener" style="color:#007AFF;text-decoration:underline;">' + url + '</a>';
+    });
+
+    // Single newlines → <br> (before paragraph wrapping)
+    html = html.replace(/\n/g, '<br>');
+
+    // Clean up multiple consecutive <br>
+    html = html.replace(/(<br>)+/g, '<br>');
+
+    // Paragraphs
     html = '<p>' + html + '</p>';
 
     // Clean up empty paragraphs and nested issues
@@ -95,6 +142,7 @@
   }
 
   function send() {
+    if (sendBtn.disabled) return;
     var text = input.value.trim();
     if (!text || waiting) return;
     addMsg(text, 'user', false);
@@ -112,31 +160,248 @@
     if (e.key === 'Enter') send();
   });
 
-  var clearBtn = document.getElementById('clearBtn');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function () {
+  // ---- 会话历史下拉框（自定义） ----
+  var convTrigger = document.getElementById('convTrigger');
+  var convMenu = document.getElementById('convMenu');
+  var currentConvId = '';
+  var conversationList = [];
+
+  function openConvMenu() {
+    convMenu.style.display = 'block';
+    renderConvMenu();
+  }
+
+  function closeConvMenu() {
+    convMenu.style.display = 'none';
+  }
+
+  function renderConvMenu() {
+    convMenu.innerHTML = '';
+    // 新会话选项
+    var newItem = document.createElement('div');
+    newItem.className = 'conv-menu-new';
+    newItem.textContent = '+ 新会话';
+    newItem.addEventListener('click', function () {
       msgs.innerHTML = '<div class="msg system">新会话</div>';
       if (window.screenToyDialog) window.screenToyDialog.clear();
+      currentConvId = '';
+      convTrigger.textContent = '+ 新会话';
+      closeConvMenu();
+    });
+    convMenu.appendChild(newItem);
+    // 历史会话
+    conversationList.forEach(function (c) {
+      var item = document.createElement('div');
+      item.className = 'conv-menu-item' + (c.id === currentConvId ? ' active' : '');
+      var title = document.createElement('span');
+      title.className = 'conv-title';
+      title.textContent = c.title;
+      title.addEventListener('click', function () {
+        loadConv(c.id);
+        closeConvMenu();
+      });
+      item.appendChild(title);
+      var del = document.createElement('span');
+      del.className = 'conv-del';
+      del.textContent = '✕';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!window.screenToyDialog || !window.screenToyDialog.deleteConversation) return;
+        window.screenToyDialog.deleteConversation(c.id).then(function () {
+          // 立即从列表中移除
+          conversationList = conversationList.filter(function (x) { return x.id !== c.id; });
+          if (currentConvId === c.id) {
+            msgs.innerHTML = '<div class="msg system">会话已删除</div>';
+            currentConvId = '';
+            convTrigger.textContent = '+ 新会话';
+            if (window.screenToyDialog) window.screenToyDialog.clear();
+          }
+          renderConvMenu();
+        });
+      });
+      item.appendChild(del);
+      convMenu.appendChild(item);
     });
   }
 
+  function loadConv(id) {
+    if (!window.screenToyDialog || !window.screenToyDialog.loadConversation) return;
+    msgs.innerHTML = '<div class="msg system">加载中...</div>';
+    window.screenToyDialog.loadConversation(id).then(function (record) {
+      if (!record || !record.messages) {
+        msgs.innerHTML = '<div class="msg system">加载失败</div>';
+        return;
+      }
+      msgs.innerHTML = '';
+      record.messages.forEach(function (m) {
+        if (m.role === 'user') addMsg(m.content, 'user', false);
+        else if (m.role === 'assistant') addMsg(m.content, 'bot', true);
+      });
+      currentConvId = id;
+      // 更新 trigger 文字
+      var item = conversationList.find(function (c) { return c.id === id; });
+      convTrigger.textContent = item ? item.title : '会话';
+    });
+  }
+
+  function loadConversationList() {
+    if (!window.screenToyDialog || !window.screenToyDialog.getConversationList) return;
+    window.screenToyDialog.getConversationList().then(function (list) {
+      conversationList = list || [];
+    });
+  }
+
+  convTrigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (convMenu.style.display === 'block') closeConvMenu();
+    else openConvMenu();
+  });
+
+  // 点击外部关闭下拉框
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.conv-dropdown')) closeConvMenu();
+  });
+
+  // 监听 conversation ID（新会话开启时自动选中）
+  if (window.screenToyDialog && window.screenToyDialog.onConversationId) {
+    window.screenToyDialog.onConversationId(function (id) {
+      currentConvId = id;
+      var item = conversationList.find(function (c) { return c.id === id; });
+      convTrigger.textContent = item ? item.title : '新会话';
+    });
+  }
+
+  // ---- 启用直答开关 ----
+  var enableDirectAnswerEl = document.getElementById('enableDirectAnswer');
+  function updateSearchMode() {
+    var enableDA = enableDirectAnswerEl && enableDirectAnswerEl.checked;
+    if (window.screenToySettings && window.screenToySettings.apply) {
+      window.screenToySettings.apply({ enableDirectAnswer: enableDA });
+    }
+    searchTypeEl.style.display = enableDA ? 'none' : '';
+    sendBtn.textContent = enableDA ? '发送' : '搜索';
+    refreshPlaceholder();
+    // 更新欢迎语
+    var initMsg = document.getElementById('initMsg');
+    if (initMsg) {
+      initMsg.textContent = enableDA
+        ? '你连上我的脑仁儿了。'
+        : '你想问点儿什么？';
+    }
+  }
+
+  function refreshPlaceholder() {
+    var enableDA = enableDirectAnswerEl && enableDirectAnswerEl.checked;
+    if (enableDA) {
+      input.placeholder = '输入问题...';
+    } else {
+      var isZh = searchTypeEl && searchTypeEl.value === 'zhihu';
+      input.placeholder = isZh ? '搜索知乎信息...' : '搜索全网信息...';
+    }
+  }
+  if (enableDirectAnswerEl) {
+    enableDirectAnswerEl.addEventListener('change', updateSearchMode);
+  }
+  if (searchTypeEl) {
+    searchTypeEl.addEventListener('change', function () {
+      refreshPlaceholder();
+      if (window.screenToySettings) {
+        window.screenToySettings.apply({ searchType: searchTypeEl.value });
+      }
+    });
+  }
+
+  // 初始加载会话列表
+  setTimeout(loadConversationList, 300);
+
+  // 初始模式设置
+  setTimeout(function () {
+    var enableDA = enableDirectAnswerEl && enableDirectAnswerEl.checked;
+    if (!enableDA) {
+      searchTypeEl.style.display = '';
+      sendBtn.textContent = '搜索';
+    }
+    // 初始欢迎语
+    var initMsg = document.getElementById('initMsg');
+    if (initMsg) {
+      initMsg.textContent = enableDA
+        ? '你连上我的脑仁儿了。'
+        : '你想问点儿什么？';
+    }
+  }, 600);
+
   if (window.screenToyDialog) {
+    // 流式响应：逐片段渲染
+    window.screenToyDialog.onChunk(function (chunk) {
+      if (!streamingEl) {
+        var loading = msgs.querySelector('.msg.loading');
+        if (loading) loading.remove();
+        streamingEl = document.createElement('div');
+        streamingEl.className = 'msg bot';
+        msgs.appendChild(streamingEl);
+        streamingText = '';
+      }
+      streamingText += chunk;
+      streamingEl.innerHTML = md2html(streamingText);
+      msgs.scrollTop = msgs.scrollHeight;
+    });
+
+    // 完整响应：最终渲染
     window.screenToyDialog.onReceive(function (msg) {
       waiting = false;
       if (msg === '...') return;
-      if (msg.startsWith('(新会话)')) return;
-      addMsg(msg, 'bot', true);
+      if (msg.startsWith('(新会话)') || msg.startsWith('(新会话)')) {
+        msgs.innerHTML = '<div class="msg system">' + msg + '</div>';
+        return;
+      }
+      if (streamingEl) {
+        // 流式已完成，最终渲染
+        streamingEl.innerHTML = md2html(msg);
+        streamingEl = null;
+        streamingText = '';
+      } else {
+        addMsg(msg, 'bot', true);
+      }
 
       if (msg.length > 20 && window.screenToyDialog.triggerBubble) {
-        // Send first 300 chars to bubble (supports Markdown now)
-        var bubbleText = msg.length > 300 ? msg.slice(0, 300) + '...' : msg;
-        window.screenToyDialog.triggerBubble(bubbleText);
+        window.screenToyDialog.triggerBubble('来消息了');
       }
     });
+  }
 
-    window.screenToyDialog.onBorder(function (show) {
-      var wb = document.getElementById('winBorder');
-      if (wb) wb.style.display = show ? 'block' : 'none';
+  // ---- 热榜按钮 ----
+  var hotListBtn = document.getElementById('hotListBtn');
+  if (hotListBtn) {
+    hotListBtn.addEventListener('click', function () {
+      if (window.screenToyDialog && window.screenToyDialog.getHotList) {
+        addMsg('🔍 正在获取知乎热榜...', 'system', false);
+        window.screenToyDialog.getHotList().then(function (result) {
+          if (result.error) {
+            addMsg('⚠️ ' + result.error, 'system', false);
+            return;
+          }
+          var items = result.data;
+          if (!items || items.length === 0) {
+            addMsg('暂无热榜数据', 'system', false);
+            return;
+          }
+          var text = '🔥 **知乎热榜 Top ' + items.length + '**\n\n';
+          items.forEach(function (item, i) {
+            if (item.url) {
+              text += '**' + (i + 1) + '.** [' + item.title + '](' + item.url + ')\n';
+            } else {
+              text += '**' + (i + 1) + '.** ' + item.title + '\n';
+            }
+            if (item.summary) text += item.summary.slice(0, 200) + '\n';
+            text += '\n';
+          });
+          addMsg(text, 'bot', true);
+          // 保存热榜结果到会话历史
+          if (window.screenToyDialog && window.screenToyDialog.saveHotlistToHistory) {
+            window.screenToyDialog.saveHotlistToHistory(text);
+          }
+        });
+      }
     });
   }
 })();
