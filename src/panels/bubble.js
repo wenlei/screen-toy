@@ -137,9 +137,6 @@
     });
     window.bubbleAPI.onHide(hide);
     window.bubbleAPI.onNext(showNext);
-    window.bubbleAPI.onBorder(function (s) {
-      document.getElementById('winBorder').style.display = s ? 'block' : 'none';
-    });
   }
 
   window.bubbleShow      = show;

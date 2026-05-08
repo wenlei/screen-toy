@@ -59,6 +59,11 @@ export function saveKnowledge(kb: KnowledgeBase): void {
 
 export function addConversation(record: ConversationRecord): KnowledgeBase {
   const kb = loadKnowledge();
+  // 用第一个用户消息作为标题
+  if (!record.topic) {
+    const firstUserMsg = (record.messages || []).find(function (m: { role: string; content: string }) { return m.role === 'user'; });
+    record.topic = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '新对话';
+  }
   kb.conversations.push(record);
   // Keep last 50 conversations
   if (kb.conversations.length > 50) {
@@ -102,4 +107,60 @@ export function getTopics(): TrackedTopic[] {
 
 export function getConversations(): ConversationRecord[] {
   return loadKnowledge().conversations;
+}
+
+export interface ConversationListItem {
+  id: string;
+  title: string;
+  date: string;
+  messageCount: number;
+}
+
+export function getConversationList(): ConversationListItem[] {
+  const convos = loadKnowledge().conversations;
+  const list: ConversationListItem[] = [];
+  for (let i = convos.length - 1; i >= 0; i--) {
+    const c = convos[i];
+    var title = c.topic;
+    if (!title) {
+      var firstUser = (c.messages || []).find(function (m: { role: string; content: string }) { return m.role === 'user'; });
+      title = firstUser ? firstUser.content.slice(0, 30) : '未命名对话';
+    }
+    list.push({
+      id: c.id,
+      title: title,
+      date: c.date,
+      messageCount: (c.messages || []).length,
+    });
+  }
+  return list;
+}
+
+export function getConversationById(id: string): ConversationRecord | null {
+  const convos = loadKnowledge().conversations;
+  return convos.find(function (c: ConversationRecord) { return c.id === id; }) || null;
+}
+
+export function saveOrUpdateConversation(record: ConversationRecord): void {
+  const kb = loadKnowledge();
+  const existing = kb.conversations.findIndex(function (c: ConversationRecord) { return c.id === record.id; });
+  if (!record.topic) {
+    const firstUserMsg = (record.messages || []).find(function (m: { role: string; content: string }) { return m.role === 'user'; });
+    record.topic = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '新对话';
+  }
+  if (existing >= 0) {
+    kb.conversations[existing] = record;
+  } else {
+    kb.conversations.push(record);
+    if (kb.conversations.length > 50) {
+      kb.conversations = kb.conversations.slice(-50);
+    }
+  }
+  saveKnowledge(kb);
+}
+
+export function deleteConversation(id: string): void {
+  const kb = loadKnowledge();
+  kb.conversations = kb.conversations.filter(function (c: ConversationRecord) { return c.id !== id; });
+  saveKnowledge(kb);
 }

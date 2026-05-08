@@ -1,77 +1,35 @@
 (function () {
+  console.log('[Settings] Script starting...');
   var cfg = window.__CONFIG || {};
   var defaults = {
-    idleFrame:    cfg.idleFrame    || 180,
-    walkFrame:    cfg.walkFrame    || 120,
-    walkSpeed:    cfg.walkSpeed    || 150,
-    sitFrame:     cfg.sitFrame     || 400,
-    pokeFrame:    cfg.pokeFrame    || 70,
-    displayScale: cfg.displayScale || 0.7,
-    showWindowBorder: false,
     agentApiKey:   '',
-    agentApiKey2:  '',
-    agentEndpoint: 'https://api.deepseek.com/v1/chat/completions',
-    agentModel:    'deepseek-chat',
-    agentProvider: 'deepseek',
-    enableWebSearch: false,
-  };
-
-  // Provider presets
-  var PROVIDER_PRESETS = {
-    deepseek: { endpoint: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat' },
-    zhihu:    { endpoint: 'https://developer.zhihu.com/v1/chat/completions', model: 'zhida-fast-1p5' },
+    agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
+    agentModel:    'zhida-fast-1p5',
+    agentProvider: 'zhihu',
+    agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
+    agentModel:    'zhida-fast-1p5',
+    mbtiEI: 'E',
+    mbtiSN: 'N',
+    mbtiTF: 'F',
+    mbtiJP: 'J',
   };
 
   var menuApps = [];
 
   var els = {
-    idleFrame:        document.getElementById('idleFrame'),
-    walkFrame:        document.getElementById('walkFrame'),
-    walkSpeed:        document.getElementById('walkSpeed'),
-    sitFrame:         document.getElementById('sitFrame'),
-    pokeFrame:        document.getElementById('pokeFrame'),
-    displayScale:     document.getElementById('displayScale'),
-    idleFrameVal:     document.getElementById('idleFrameVal'),
-    walkFrameVal:     document.getElementById('walkFrameVal'),
-    walkSpeedVal:     document.getElementById('walkSpeedVal'),
-    sitFrameVal:      document.getElementById('sitFrameVal'),
-    pokeFrameVal:     document.getElementById('pokeFrameVal'),
-    displayScaleVal:  document.getElementById('displayScaleVal'),
     appList:          document.getElementById('appList'),
     customAppSelect:  document.getElementById('customAppSelect'),
     addAppBtn:        document.getElementById('addAppBtn'),
-    applyBtn:         document.getElementById('applyBtn'),
-    resetBtn:         document.getElementById('resetBtn'),
     menuBtn:          document.getElementById('menuBtn'),
     dialogBtn:        document.getElementById('dialogBtn'),
-    showWindowBorder: document.getElementById('showWindowBorder'),
     animGrid:         document.getElementById('animGrid'),
+    sunToggleBtn:     document.getElementById('sunToggleBtn'),
     agentApiKey:      document.getElementById('agentApiKey'),
-    agentApiKey2:     document.getElementById('agentApiKey2'),
-    agentEndpoint:    document.getElementById('agentEndpoint'),
-    agentModel:       document.getElementById('agentModel'),
     agentProvider:    document.getElementById('agentProvider'),
-    enableWebSearch:  document.getElementById('enableWebSearch'),
+    zhihuModel:       document.getElementById('zhihuModel'),
     toggleApiKey:    document.getElementById('toggleApiKey'),
-    toggleApiKey2:   document.getElementById('toggleApiKey2'),
-    statusText:       document.getElementById('statusText'),
-    topicList:        document.getElementById('topicList'),
+    openApiPage:      document.getElementById('openApiPage'),
   };
-
-  // ---- Label update ----
-  function updateLabels() {
-    els.idleFrameVal.textContent   = els.idleFrame.value;
-    els.walkFrameVal.textContent   = els.walkFrame.value;
-    els.walkSpeedVal.textContent   = els.walkSpeed.value;
-    els.sitFrameVal.textContent    = els.sitFrame.value;
-    els.pokeFrameVal.textContent   = els.pokeFrame.value;
-    els.displayScaleVal.textContent = els.displayScale.value;
-  }
-
-  Object.keys(els).forEach(function (key) {
-    var el = els[key];
-    if (el && el.type === 'range') el.addEventListener('input', updateLabels);
-  });
 
   // ---- Animation buttons ----
   var ANIMS = [
@@ -79,13 +37,12 @@
     { id: 'hula',       label: '草裙舞',              icon: '🌺', durationMs: 6000 },
     { id: 'sneeze',     label: '打喷嚏',            icon: '🤧', durationMs: 2000 },
     { id: 'melt',       label: '热化了',            icon: '☀️', durationMs: 3000 },
-    { id: 'sun-toggle', label: '躲太阳',            icon: '🎮', isToggle: true },
     { id: 'apple',      label: '狐顿',                icon: '🍎', durationMs: 4000 },
     { id: 'freeze',     label: '冻成冰棍',            icon: '🧊', durationMs: 6000 },
+    { id: 'bignose',    label: '大鼻子',              icon: '👃', durationMs: 2000 },
   ];
 
   var animTimers = {};
-  var sunGameOn = false;
 
   ANIMS.forEach(function (anim) {
     var btn = document.createElement('button');
@@ -96,23 +53,33 @@
       if (window.screenToySettings) {
         window.screenToySettings.triggerAnimation(anim.id);
       }
-      if (anim.isToggle) {
-        sunGameOn = !sunGameOn;
-        btn.classList.toggle('playing', sunGameOn);
-      } else {
-        btn.classList.add('playing');
-        clearTimeout(animTimers[anim.id]);
-        animTimers[anim.id] = setTimeout(function () {
-          btn.classList.remove('playing');
-        }, anim.durationMs || 4000);
-      }
+      btn.classList.add('playing');
+      clearTimeout(animTimers[anim.id]);
+      animTimers[anim.id] = setTimeout(function () {
+        btn.classList.remove('playing');
+      }, anim.durationMs || 4000);
     });
     els.animGrid.appendChild(btn);
+  });
+
+  // ---- 躲太阳 toggle ----
+  var sunGameOn = false;
+  els.sunToggleBtn.addEventListener('click', function () {
+    if (window.screenToySettings) window.screenToySettings.triggerAnimation('sun-toggle');
+    sunGameOn = !sunGameOn;
+    els.sunToggleBtn.classList.toggle('playing', sunGameOn);
   });
 
   // ---- App list ----
   function renderMenuApps() {
     els.appList.innerHTML = '';
+    if (!menuApps || menuApps.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'font-size:12px;color:#bbb;padding:4px 0;';
+      empty.textContent = '暂无应用，从下方下拉框选择添加';
+      els.appList.appendChild(empty);
+      return;
+    }
     menuApps.forEach(function (app, i) { addAppItem(app, i); });
   }
 
@@ -143,6 +110,7 @@
     del.addEventListener('click', function () {
       menuApps.splice(index, 1);
       renderMenuApps();
+      if (window.screenToySettings) window.screenToySettings.apply(getValues());
     });
     row.appendChild(del);
 
@@ -150,44 +118,79 @@
   }
 
   // ---- Values ----
+  // ---- MBTI 人格风格 toggle ----
+  var mbtiValues = { EI: 'E', SN: 'N', TF: 'F', JP: 'J' };
+  var MBTI_TYPES = {
+    'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
+    'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',
+    'ISTJ': '物流师', 'ISFJ': '守卫者', 'ESTJ': '总经理', 'ESFJ': '执政官',
+    'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
+  };
+  var mbtiExplain = {
+    EI: { E: '热情外放，语调活泼，喜欢用感叹号', I: '内敛沉稳，语调平和，回复有深度' },
+    SN: { S: '务实具体，给出实际建议，用数据说话', N: '天马行空，善于联想和抽象思考' },
+    TF: { T: '逻辑清晰，分析客观，推理严谨', F: '温暖共情，注重感受，有人情味' },
+    JP: { J: '有条理有计划，结构清晰', P: '灵活随性，自然不做作，像即兴聊天' },
+  };
+  var mbtiRows = [
+    { id: 'mbtiEI', key: 'EI', hintId: 'mbtiEI-hint' },
+    { id: 'mbtiSN', key: 'SN', hintId: 'mbtiSN-hint' },
+    { id: 'mbtiTF', key: 'TF', hintId: 'mbtiTF-hint' },
+    { id: 'mbtiJP', key: 'JP', hintId: 'mbtiJP-hint' },
+  ];
+
   function getValues() {
     return {
-      idleFrame:        parseInt(els.idleFrame.value),
-      walkFrame:        parseInt(els.walkFrame.value),
-      walkSpeed:        parseInt(els.walkSpeed.value),
-      sitFrame:         parseInt(els.sitFrame.value),
-      pokeFrame:        parseInt(els.pokeFrame.value),
-      displayScale:     parseFloat(els.displayScale.value),
-      showWindowBorder: els.showWindowBorder.checked,
       menuApps: menuApps.map(function (a) {
         return { id: a.id, name: a.name, icon: a.icon || '', cmd: a.cmd || '', appPath: a.appPath || '' };
       }),
-      agentApiKey:   els.agentApiKey.value.trim(),
-      agentApiKey2:  els.agentApiKey2.value.trim(),
-      agentEndpoint: els.agentEndpoint.value.trim(),
-      agentModel:    els.agentModel.value.trim(),
-      agentProvider: els.agentProvider.value,
-      enableWebSearch: els.enableWebSearch.checked,
+      agentApiKey:     els.agentApiKey.value.trim(),
+      agentEndpoint:   'https://developer.zhihu.com/v1/chat/completions',
+      agentModel:      els.zhihuModel.value,
+      agentProvider:   els.agentProvider.value,
+      mbtiEI:          mbtiValues.EI,
+      mbtiSN:          mbtiValues.SN,
+      mbtiTF:          mbtiValues.TF,
+      mbtiJP:          mbtiValues.JP,
     };
   }
 
   function setValues(v) {
-    els.idleFrame.value        = v.idleFrame    != null ? v.idleFrame    : defaults.idleFrame;
-    els.walkFrame.value        = v.walkFrame    != null ? v.walkFrame    : defaults.walkFrame;
-    els.walkSpeed.value        = v.walkSpeed    != null ? v.walkSpeed    : defaults.walkSpeed;
-    els.sitFrame.value         = v.sitFrame     != null ? v.sitFrame     : defaults.sitFrame;
-    els.pokeFrame.value        = v.pokeFrame    != null ? v.pokeFrame    : defaults.pokeFrame;
-    els.displayScale.value     = v.displayScale != null ? v.displayScale : defaults.displayScale;
-    els.showWindowBorder.checked = !!v.showWindowBorder;
-    els.agentApiKey.value     = v.agentApiKey     || '';
-    els.agentApiKey2.value    = v.agentApiKey2    || '';
-    els.agentEndpoint.value   = v.agentEndpoint   || 'https://api.deepseek.com/v1/chat/completions';
-    els.agentModel.value      = v.agentModel      || 'deepseek-chat';
-    els.agentProvider.value   = v.agentProvider   || 'deepseek';
-    els.enableWebSearch.checked = !!v.enableWebSearch;
-    if (v.menuApps) menuApps = v.menuApps.slice();
-    renderMenuApps();
-    updateLabels();
+    console.log('[Settings] setValues called, v.menuApps:', v.menuApps ? v.menuApps.length : 0);
+    try {
+      els.agentApiKey.value   = v.agentApiKey   || '';
+      console.log('[Settings] agentApiKey set');
+    } catch(e) { console.log('[Settings] agentApiKey error:', e.message); }
+    try {
+      els.agentProvider.value = v.agentProvider || 'zhihu';
+      console.log('[Settings] agentProvider set');
+    } catch(e) { console.log('[Settings] agentProvider error:', e.message); }
+    try {
+      if (ZHIHU_MODELS.indexOf(v.agentModel) !== -1) {
+        els.zhihuModel.value = v.agentModel;
+      }
+      console.log('[Settings] zhihuModel set');
+    } catch(e) { console.log('[Settings] zhihuModel error:', e.message); }
+    // 先处理 menuApps，确保即使 MBTI 代码出错也能加载应用
+    try {
+      if (v.menuApps) menuApps = v.menuApps.slice();
+      renderMenuApps();
+      console.log('[Settings] menuApps set:', menuApps.length);
+    } catch(e) { console.log('[Settings] menuApps error:', e.message); }
+    // MBTI values
+    if (v.mbtiEI) mbtiValues.EI = v.mbtiEI;
+    if (v.mbtiSN) mbtiValues.SN = v.mbtiSN;
+    if (v.mbtiTF) mbtiValues.TF = v.mbtiTF;
+    if (v.mbtiJP) mbtiValues.JP = v.mbtiJP;
+    // Update toggle UI
+    mbtiRows.forEach(function (row) {
+      var el = document.getElementById(row.id);
+      if (!el) return;
+      var btns = el.querySelectorAll('.mbti-btn');
+      btns.forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.val === mbtiValues[row.key]);
+      });
+    });
   }
 
   // ---- Emoji fallback ----
@@ -213,56 +216,62 @@
     var name = els.customAppSelect.value;
     if (!name) return;
     var id = 'custom-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    if (menuApps.some(function (a) { return a.id === id; })) {
-      els.statusText.textContent = '已存在';
-      setTimeout(function () { els.statusText.textContent = ''; }, 1500);
-      return;
-    }
+    if (menuApps.some(function (a) { return a.id === id; })) return;
     menuApps.push({ id: id, name: name, icon: pickEmoji(name),
       cmd: 'open -a "' + name + '"', appPath: '/Applications/' + name + '.app' });
     els.customAppSelect.value = '';
     renderMenuApps();
-    els.statusText.textContent = '已添加 ' + name;
-    setTimeout(function () { els.statusText.textContent = ''; }, 2000);
+    if (window.screenToySettings) window.screenToySettings.apply(getValues());
   });
 
-  // ---- Knowledge base topics ----
+  // ---- MBTI toggle 事件绑定 ----
+  function updateMbtiHint(row) {
+    var hintEl = document.getElementById(row.hintId);
+    if (hintEl) {
+      hintEl.textContent = mbtiExplain[row.key][mbtiValues[row.key]];
+    }
+    // 更新类型名显示
+    var typeDisplay = document.getElementById('mbtiTypeDisplay');
+    if (typeDisplay) {
+      var mbtiType = mbtiValues.EI + mbtiValues.SN + mbtiValues.TF + mbtiValues.JP;
+      var typeName = MBTI_TYPES[mbtiType] || '';
+      typeDisplay.textContent = typeName ? mbtiType + ' ' + typeName : '';
+    }
+  }
 
-  function renderTopics() {
-    if (!window.screenToySettings || !window.screenToySettings.getTopics) return;
-    window.screenToySettings.getTopics(function (topics) {
-      var list = els.topicList;
-      list.innerHTML = '';
-      if (!topics || topics.length === 0) {
-        list.innerHTML = '<div style="font-size:12px;color:#bbb;padding:4px 0;">暂无追踪话题</div>';
-        return;
-      }
-      topics.forEach(function (t) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;background:#fafafa;border-radius:4px;margin-bottom:2px;';
-        var name = document.createElement('span');
-        name.style.cssText = 'font-size:12px;color:#333;flex:1;';
-        name.textContent = t.name + ' (' + (t.conversationCount || 1) + '次)';
-        row.appendChild(name);
-        var del = document.createElement('span');
-        del.style.cssText = 'cursor:pointer;color:#bbb;font-size:13px;';
-        del.textContent = '✕';
-        del.addEventListener('click', function () {
-          if (window.screenToySettings) window.screenToySettings.removeTopic(t.name);
-          renderTopics();
-        });
-        row.appendChild(del);
-        list.appendChild(row);
+  mbtiRows.forEach(function (row) {
+    var el = document.getElementById(row.id);
+    if (!el) return;
+    var btns = el.querySelectorAll('.mbti-btn');
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        mbtiValues[row.key] = btn.dataset.val;
+        updateMbtiHint(row);
+        if (window.screenToySettings) {
+          window.screenToySettings.apply({
+            mbtiEI: mbtiValues.EI,
+            mbtiSN: mbtiValues.SN,
+            mbtiTF: mbtiValues.TF,
+            mbtiJP: mbtiValues.JP,
+          });
+        }
       });
+    });
+    // 初始化解释文字
+    updateMbtiHint(row);
+  });
+
+  // ---- API 申请按钮 ----
+  if (els.openApiPage) {
+    els.openApiPage.addEventListener('click', function () {
+      if (window.screenToySettings && window.screenToySettings.openApiPage) {
+        window.screenToySettings.openApiPage();
+      }
     });
   }
 
-  // Load topics when settings opens
-  if (window.screenToySettings) {
-    var origOnLoad = window.screenToySettings.onLoad;
-    // render topics on load
-    setTimeout(renderTopics, 200);
-  }
   function setupApiKeyToggle(btnId, inpId) {
     var btn = document.getElementById(btnId);
     var inp = document.getElementById(inpId);
@@ -278,11 +287,35 @@
     });
   }
   setupApiKeyToggle('toggleApiKey', 'agentApiKey');
-  setupApiKeyToggle('toggleApiKey2', 'agentApiKey2');
+
+  // ---- Lock/Unlock API keys ----
+  var aiLocked = false;
+  var lockBtn = document.getElementById('toggleLock');
+  console.log('[Settings] lockBtn:', lockBtn ? 'found' : 'NOT FOUND');
+
+  function applyAiLock() {
+    var keyInputs = [els.agentApiKey];
+    keyInputs.forEach(function (inp) {
+      if (!inp) return;
+      inp.readOnly = aiLocked;
+      inp.style.opacity = aiLocked ? '0.6' : '1';
+      inp.style.cursor = aiLocked ? 'default' : 'text';
+    });
+    lockBtn.textContent = aiLocked ? 'lock' : 'lock_open';
+    lockBtn.title = aiLocked ? '解锁编辑 API Key' : '锁定 API Key';
+    lockBtn.style.color = aiLocked ? '#aaa' : '#007AFF';
+  }
+
+  lockBtn.addEventListener('click', function () {
+    aiLocked = !aiLocked;
+    applyAiLock();
+  });
+
+  applyAiLock(); // 初始锁定
   els.agentProvider.addEventListener('change', function () {
-    var preset = PROVIDER_PRESETS[els.agentProvider.value];
-    if (preset && preset.endpoint) els.agentEndpoint.value = preset.endpoint;
-    if (preset && preset.model) els.agentModel.value = preset.model;
+    if (window.screenToySettings) {
+      window.screenToySettings.apply({ agentProvider: els.agentProvider.value });
+    }
   });
 
   if (window.screenToySettings) {
@@ -297,26 +330,17 @@
     });
     window.screenToySettings.getInstalledApps();
 
-    window.screenToySettings.onLoad(function (v) { setValues(v); });
+    window.screenToySettings.onLoad(function (v) { 
+      console.log('[Settings] onLoad called, menuApps:', v.menuApps ? v.menuApps.length : 0);
+      setValues(v); 
+    });
+    // 确保设置被发送（处理 did-finish-load 先于脚本执行的情况）
+    window.screenToySettings.requestCurrent();
   }
 
-  // ---- Apply / Reset ----
-  els.applyBtn.addEventListener('click', function () {
-    if (window.screenToySettings) {
-      window.screenToySettings.apply(getValues());
-      els.statusText.textContent = '已应用';
-      setTimeout(function () { els.statusText.textContent = ''; }, 1500);
-    }
-  });
-
-  els.resetBtn.addEventListener('click', function () {
-    setValues(defaults);
-    if (window.screenToySettings) {
-      window.screenToySettings.apply(getValues());
-      els.statusText.textContent = '已重置';
-      setTimeout(function () { els.statusText.textContent = ''; }, 1500);
-    }
-  });
+  // 初始渲染应用列表（显示空状态提示）
+  renderMenuApps();
+  console.log('[Settings] Initial renderMenuApps called, menuApps:', menuApps.length);
 
   // ---- Quick actions ----
   els.menuBtn.addEventListener('click', function () {
@@ -325,16 +349,5 @@
   els.dialogBtn.addEventListener('click', function () {
     if (window.screenToySettings) window.screenToySettings.openDialog();
   });
-
-  function applyBorder(show) {
-    document.getElementById('winBorder').style.display = show ? 'block' : 'none';
-  }
-  els.showWindowBorder.addEventListener('change', function () {
-    applyBorder(this.checked);
-    if (window.screenToySettings) window.screenToySettings.apply(getValues());
-  });
-  if (window.screenToySettings) {
-    window.screenToySettings.onBorder(function (show) { applyBorder(show); });
-  }
 
 })();

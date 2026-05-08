@@ -11,6 +11,7 @@
   .msg.user { align-self:flex-end; background:#007AFF; color:#fff; }
   .msg.bot { align-self:flex-start; background:#FFFFFF; color:#1C1C1E; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
   .msg.system { align-self:center; background:transparent; color:#AEAEB2; font-size:12px; }
+  .msg.quota { align-self:center; background:transparent; color:#AEAEB2; font-size:10px; }
 
   /* Markdown styles inside bot messages */
   .msg.bot h1 { font-size:18px; margin:6px 0 4px; }
@@ -39,26 +40,52 @@
   .msg.bot hr { border:none; border-top:1px solid #E5E5EA; margin:8px 0; }
   .msg.bot strong { font-weight:600; }
   .msg.bot em { font-style:italic; }
+  .msg.bot a { color:#007AFF; text-decoration:underline; word-break:break-all; }
+  .msg.bot a:hover { opacity:0.8; }
 
   .input-row { display:flex; padding:10px 12px; background:#FFFFFF; border-top:1px solid #E5E5EA; gap:8px; }
   .input-row input { flex:1; background:#F2F2F7; border:1px solid #E5E5EA; color:#1C1C1E; padding:8px 12px; border-radius:8px; font-size:13px; outline:none; }
   .input-row input:focus { border-color:#007AFF; }
   .input-row button { padding:8px 16px; background:#34C759; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
+
+  .conv-menu-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; font-size:12px; color:#1C1C1E; cursor:pointer; border-bottom:1px solid #F2F2F7; max-width:180px; }
+  .conv-menu-item:last-child { border-bottom:none; }
+  .conv-menu-item:hover { background:#F2F2F7; }
+  .conv-menu-item.active { background:#E8F0FE; color:#007AFF; }
+  .conv-menu-item .conv-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .conv-menu-item .conv-del { color:#ccc; font-size:14px; padding:2px 4px; border-radius:4px; margin-left:6px; cursor:pointer; }
+  .conv-menu-item .conv-del:hover { color:#e74c3c; background:rgba(231,76,60,0.06); }
+  .conv-menu-new { padding:8px 12px; font-size:12px; color:#007AFF; cursor:pointer; border-bottom:1px solid #F2F2F7; }
+  .conv-menu-new:hover { background:#F2F2F7; }
 </style>
 </head>
 <body>
 <div class="header">
-  AI 对话
-  <button id="clearBtn" style="float:right;background:none;border:1px solid #E5E5EA;border-radius:6px;padding:2px 10px;font-size:12px;color:#6E6E73;cursor:pointer;">新会话</button>
+  刘看山的脑仁儿
+  <label style="float:right;display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:8px;font-size:12px;color:#6E6E73;">
+    <input type="checkbox" id="enableDirectAnswer" checked style="cursor:pointer;">
+    <span>直答</span>
+  </label>
+  <button id="hotListBtn" style="float:right;background:none;border:1px solid #E5E5EA;border-radius:6px;padding:2px 10px;font-size:12px;color:#6E6E73;cursor:pointer;margin-left:8px;">🔥 热榜</button>
+  <div class="conv-dropdown" id="convDropdown" style="float:right;position:relative;margin-left:8px;">
+    <div class="conv-trigger" id="convTrigger" style="background:#fff;border:1px solid #E5E5EA;border-radius:6px;padding:2px 8px;padding-right:20px;font-size:12px;color:#6E6E73;cursor:pointer;width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;">
+      <span style="overflow:hidden;text-overflow:ellipsis;">+ 新会话</span>
+      <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:#aaa;">▼</span>
+    </div>
+    <div class="conv-menu" id="convMenu" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#fff;border:1px solid #E5E5EA;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:100;min-width:180px;max-height:300px;overflow-y:auto;"></div>
+  </div>
 </div>
 <div class="messages" id="msgs">
-  <div class="msg system">连接 AI 服务...</div>
+  <div class="msg system" id="initMsg">连接 AI 服务...</div>
 </div>
 <div class="input-row">
   <input type="text" id="input" placeholder="输入问题..." autofocus>
+  <select id="searchType" style="display:none;background:#fff;border:1px solid #E5E5EA;color:#444;padding:6px 4px;border-radius:8px;font-size:11px;outline:none;max-width:120px;">
+    <option value="zhihu">知乎搜</option>
+    <option value="global">全网搜</option>
+  </select>
   <button id="sendBtn">发送</button>
 </div>
-<div id="winBorder" style="display:none;position:fixed;inset:0;border:2px solid rgba(255,0,80,0.8);pointer-events:none;z-index:9999;box-sizing:border-box;"></div>
 <script src="dialog.js"></script>
 </body>
 </html>

@@ -5,10 +5,11 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
 
-  body {
+  html, body {
+    width: 100%;
+    height: 100%;
     background: transparent;
-    overflow: visible;
-    position: relative;
+    overflow: hidden;
   }
 
   canvas#deco {
@@ -74,7 +75,6 @@
 <body>
 <canvas id="deco"></canvas>
 <div class="menu" id="menu"></div>
-<div id="winBorder" style="display:none;position:fixed;inset:0;border:2px solid rgba(255,0,80,0.8);pointer-events:none;z-index:9999;box-sizing:border-box;"></div>
 <script src="menu.js"></script>
 </body>
 </html>

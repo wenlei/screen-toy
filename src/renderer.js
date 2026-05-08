@@ -36,7 +36,7 @@
   var QUIT_FRAME_MS  = cfg.quitFrameMs  || 80;   // ~12.5 fps  (24 frames ≈ 1.9 s total)
 
   // Twist / Detwist animation state
-  // twistPhase: 0 = idle, 1 = twisting (frames 0-23), 2 = detwisting (frames 0-23)
+  // twistPhase: 0 = idle, 1 = twisting, 2 = struggling, 3 = detwisting
   var twistPhase     = 0;
   var twistFrameIdx  = 0;
   var twistFrameTimer = 0;
@@ -70,6 +70,11 @@
   var meltFrameIdx   = 0;
   var meltFrameTimer = 0;
   var MELT_FRAME_MS  = cfg.meltFrameMs  || 120;  // slower: 24 frames ≈ 2.9 s
+
+  var bigNoseActive    = false;
+  var bigNoseFrameIdx  = 0;
+  var bigNoseFrameTimer = 0;
+  var BIGNOSE_FRAME_MS = 80;
 
   // freezePhase: 0=idle, 1=freezing, 2=thawing
   var freezePhase     = 0;
@@ -198,6 +203,10 @@
         meltActive = true;
         meltFrameIdx = 0;
         meltFrameTimer = 0;
+      } else if (name === 'bignose' && !bigNoseActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive && freezePhase === 0) {
+        bigNoseActive = true;
+        bigNoseFrameIdx = 0;
+        bigNoseFrameTimer = 0;
       } else if (name === 'freeze' && freezePhase === 0 && !meltActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive) {
         freezePhase = 1;
         freezeFrameIdx = 0;
@@ -463,6 +472,22 @@
     }
     // ───────────────────────────────────────────────────────────────────────
 
+    // ── BigNose animation ──────────────────────────────────────────────────
+    if (bigNoseActive) {
+      bigNoseFrameTimer += dt * 1000;
+      var BNTOTAL = window.BigNoseSprite ? window.BigNoseSprite.FRAME_COUNT : 24;
+      while (bigNoseFrameTimer >= BIGNOSE_FRAME_MS && bigNoseFrameIdx < BNTOTAL) {
+        bigNoseFrameTimer -= BIGNOSE_FRAME_MS;
+        bigNoseFrameIdx++;
+      }
+      if (bigNoseFrameIdx >= BNTOTAL) {
+        bigNoseActive = false;
+        bigNoseFrameIdx = 0;
+        bigNoseFrameTimer = 0;
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     // ── Apple-hit → Hudun sequence ─────────────────────────────────────────
     if (applePhase > 0) {
       appleFrameTimer += dt * 1000;
@@ -522,15 +547,23 @@
     // ── Twist / Detwist animation ──────────────────────────────────────────
     if (twistPhase > 0) {
       twistFrameTimer += dt * 1000;
-      var TTOTAL = window.TwistSprite ? window.TwistSprite.FRAME_COUNT : 24;
+      var curTwistSprite = twistPhase === 1 ? window.TwistSprite
+                         : twistPhase === 2 ? window.TwistStruggleSprite
+                         : window.DetwistSprite;
+      var TTOTAL = curTwistSprite ? curTwistSprite.FRAME_COUNT : 24;
       while (twistFrameTimer >= TWIST_FRAME_MS && twistFrameIdx < TTOTAL) {
         twistFrameTimer -= TWIST_FRAME_MS;
         twistFrameIdx++;
       }
       if (twistFrameIdx >= TTOTAL) {
         if (twistPhase === 1) {
-          // Switch to detwist immediately
+          // Twist → Struggle
           twistPhase = 2;
+          twistFrameIdx = 0;
+          twistFrameTimer = 0;
+        } else if (twistPhase === 2) {
+          // Struggle → Detwist
+          twistPhase = 3;
           twistFrameIdx = 0;
           twistFrameTimer = 0;
         } else {
@@ -677,7 +710,7 @@
     // ─────────────────────────────────────────────────────────────────────
 
     // Check for bubble triggers (suppress during special animations)
-    var animRunning = twistPhase > 0 || hulaPhase > 0 || sneezeActive || meltActive || freezePhase > 0 || applePhase > 0 || sunGameActive;
+    var animRunning = twistPhase > 0 || hulaPhase > 0 || sneezeActive || meltActive || freezePhase > 0 || bigNoseActive || applePhase > 0 || sunGameActive;
     if (!animRunning) {
       if (behavior.anim._bubbleText && window.screenToy) {
         window.screenToy.showBubble({ text: behavior.anim._bubbleText, wait: 3000 });
@@ -800,8 +833,9 @@
       var appleFrameToShow = Math.min(appleFrameIdx, (applePhase === 1 ? window.AppleSprite : window.HudunSprite || window.AppleSprite).FRAME_COUNT - 1);
       var appleSprite = applePhase === 1 ? window.AppleSprite : window.HudunSprite;
       if (appleSprite) {
-        var appleDW = Math.round(dW * 1.3);
-        var appleDH = Math.round(dH * 1.3);
+        var appleScale = applePhase === 2 ? 1.346 : 1.3;
+        var appleDW = Math.round(dW * appleScale);
+        var appleDH = Math.round(dH * appleScale);
         var appleOx = Math.round(canvas.width  / 2 - appleDW / 2);
         var appleOy = Math.round(canvas.height / 2 - appleDH / 2);
         appleSprite.drawDirect(ctx, appleFrameToShow, appleOx, appleOy, appleDW, appleDH);
@@ -815,12 +849,27 @@
         var okOy = Math.round(canvas.height / 2 - okDH / 2);
         window.OkSprite.drawDirect(ctx, okFrameToShow, okOx, okOy, okDW, okDH);
       }
+    } else if (bigNoseActive) {
+      var bigNoseFrameToShow = Math.min(bigNoseFrameIdx, (window.BigNoseSprite ? window.BigNoseSprite.FRAME_COUNT : 24) - 1);
+      if (window.BigNoseSprite) {
+        var bnDW = Math.round(dW * 1.2);
+        var bnDH = Math.round(dH * 1.2);
+        var bnOx = Math.round(canvas.width  / 2 - bnDW / 2);
+        var bnOy = Math.round(canvas.height / 2 - bnDH / 2);
+        window.BigNoseSprite.drawDirect(ctx, bigNoseFrameToShow, bnOx, bnOy, bnDW, bnDH);
+      }
     } else if (twistPhase > 0) {
-      var twistFrameToShow = Math.min(twistFrameIdx, (window.TwistSprite ? window.TwistSprite.FRAME_COUNT : 24) - 1);
-      if (twistPhase === 1 && window.TwistSprite) {
-        window.TwistSprite.drawDirect(ctx, twistFrameToShow, ox, oy, dW, dH);
-      } else if (twistPhase === 2 && window.DetwistSprite) {
-        window.DetwistSprite.drawDirect(ctx, twistFrameToShow, ox, oy, dW, dH);
+      var twistSpriteNow = twistPhase === 1 ? window.TwistSprite
+                        : twistPhase === 2 ? window.TwistStruggleSprite
+                        : window.DetwistSprite;
+      if (twistSpriteNow) {
+        var twistFrameToShow = Math.min(twistFrameIdx, twistSpriteNow.FRAME_COUNT - 1);
+        // Struggle phase draws slightly larger (1.2×) to give room for shaking effects
+        var twistDW = twistPhase === 2 ? Math.round(dW * 1.2) : dW;
+        var twistDH = twistPhase === 2 ? Math.round(dH * 1.2) : dH;
+        var twistOx = twistPhase === 2 ? Math.round(canvas.width  / 2 - twistDW / 2) : ox;
+        var twistOy = twistPhase === 2 ? Math.round(canvas.height / 2 - twistDH / 2) : oy;
+        twistSpriteNow.drawDirect(ctx, twistFrameToShow, twistOx, twistOy, twistDW, twistDH);
       }
     } else {
       ctx.drawImage(spriteCanvas, 0, 0, RobotSprite.WIDTH, RobotSprite.HEIGHT, ox, oy, dW, dH);

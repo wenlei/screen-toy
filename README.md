@@ -15,7 +15,7 @@ npm run dev
 electron/
 ├── main.ts             # Electron 主进程：窗口管理、IPC、托盘、设置持久化、AI Agent 集成
 ├── preload.ts          # contextBridge：暴露安全 API 给渲染层
-├── agent.ts            # AI Agent 后端：HTTP 请求、多 Provider 支持、网络搜索
+├── agent.ts            # AI Agent：知乎直答/搜索/热榜、SSE 流式响应
 └── knowledge.ts        # 知识库：对话记录、话题追踪、数据持久化
 
 src/
@@ -23,25 +23,13 @@ src/
 ├── renderer.js         # 游戏循环、鼠标交互、特殊动画、躲太阳游戏
 ├── behavior.js         # 行为状态机（idle / walk / sit / poke / drag / sleep）
 ├── doodle-render.js    # 精灵图加载、帧动画渲染
+├── config.js           # 默认参数配置
 ├── sun-window.html/js  # 躲太阳游戏：太阳窗口
-├── apple-window.html   # 苹果窗口（预留）
 └── panels/
     ├── menu.html/js    # 思维气泡菜单（31 帧 Canvas 动画 + 3-slice 拉伸）
-    ├── dialog.html/js  # AI 智能对话窗口（Markdown 渲染、流式更新）
+    ├── dialog.html/js  # AI 智能对话窗口（Markdown、流式更新、热榜）
     ├── bubble.html/js  # 头顶小气泡提示
-    └── settings.html/js# 参数设置面板（AI 配置、知识库管理）
-
-src/assets/doodles/arctic_fox/
-├── sheet.png           # 主精灵图（4 方向 × 24 帧行走/idle）
-├── sneeze_sheet.png    # 打喷嚏动画（6×4 帧，256×256/帧）
-├── melt_sheet.png      # 热化动画（6×4 帧）
-├── apple_sheet.png     # 苹果砸头动画（6×4 帧）
-├── hudun_sheet.png     # 狐顿恢复动画（6×4 帧）
-├── hula_*.png          # 草裙舞三段动画（穿裙/跳舞/脱裙）
-├── twist_sheet.png     # 拧巴动画
-├── freeze_sheet.png    # 冻结动画（6×4 帧）
-├── thaw_sheet.png      # 融化动画（6×4 帧）
-└── ok_sheet.png        # 好了动画（6×4 帧）
+    └── settings.html/js# 设置面板（AI 配置、应用菜单、动画触发）
 ```
 
 ## 交互
@@ -56,7 +44,8 @@ src/assets/doodles/arctic_fox/
 | 菜单 → 去知乎看看 | 在浏览器打开知乎 |
 | 菜单 → 知乎对话 | 打开 AI 智能对话窗口 |
 | 菜单 → 就这样吧 | 关闭菜单 |
-| 对话窗口 → 输入消息 | 与北极狐 AI 对话 |
+| 对话窗口 → 输入消息 | 与北极狐 AI 对话（自动搜索知乎获取最新信息） |
+| 对话窗口 → 🔥 热榜 | 查看知乎当前热点话题 |
 | 托盘 → Settings | 打开设置面板 |
 | 托盘 → Quit | 退出（播放消失动画） |
 
@@ -76,29 +65,30 @@ src/assets/doodles/arctic_fox/
 
 ## AI 智能聊天
 
-通过系统托盘打开对话窗口，与北极狐进行 AI 智能对话：
+通过对话窗口与北极狐进行 AI 智能对话，基于知乎直答：
 
 | 功能 | 说明 |
 |------|------|
 | 💬 智能对话 | 支持多轮对话，上下文记忆 |
-| 🔍 网络搜索 | 可选开启，自动搜索 Wikipedia/DuckDuckGo |
-| 📝 Markdown 渲染 | 支持代码块、列表、粗体等格式 |
-| 💾 Obsidian 保存 | 请求保存时自动生成 Markdown 模板 |
+| 🔍 自动搜索 | 每次对话自动搜索知乎/全网，获取最新信息 |
+| 📝 Markdown 渲染 | 支持代码块、列表、粗体、链接等格式 |
+| 🔗 来源标注 | 搜索结果自动标注来源链接，可点击跳转 |
+| 🔥 知乎热榜 | 一键查看当前热点话题 |
 | 🧠 知识库 | 自动记录对话和追踪话题 |
-| 🤖 多 Provider 支持 | DeepSeek / Zhihu / 自定义 OpenAI 兼容接口 |
 
-### 支持的 AI 提供商
+### 支持的模型
 
-| 提供商 | 默认 Endpoint | 模型 | 特点 |
-|--------|---------------|------|------|
-| **DeepSeek** | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` | 标准 OpenAI 兼容接口 |
-| **知乎** | `https://developer.zhihu.com/v1/chat/completions` | `zhida-fast-1p5` | 需要 X-Request-Timestamp 头 |
-| **自定义** | 用户配置 | 用户配置 | 任何 OpenAI 兼容 API |
+| 模型 | 说明 | 特点 |
+|------|------|------|
+| **zhida-fast-1p5** | 快速回答 | 速度优先，通用问答 |
+| **zhida-thinking-1p5** | 深度思考 | 推理质量更高 |
+| **zhida-agent** | 智能体 | 复杂任务，强规划能力 |
 
 ### 对话界面特性
 
-- **等待动画**: 发送消息后显示加载动画
-- **流式更新**: 逐步显示 AI 回复
+- **流式更新**: 逐字显示 AI 回复，体验更流畅
+- **来源可点击**: 搜索结果中的链接可直接点击跳转
+- **热榜查看**: 对话窗口顶部「🔥 热榜」按钮
 - **错误处理**: 网络错误、API 错误友好提示
 - **历史记录**: 保留最近 50 次对话
 - **话题追踪**: 自动识别并记录讨论话题
@@ -116,15 +106,26 @@ src/assets/doodles/arctic_fox/
 
 通过系统托盘图标打开，支持：
 
-- **动画参数**：idle / walk / sit / poke 帧间隔、行走速度、显示缩放
-- **应用菜单**：从已安装应用列表中选择，添加到气泡菜单，持久化保存
+- **AI 配置**：知乎 Access Secret、模型选择（快速/深度/智能体）
+- **API Key 保护**：锁图标控制密钥是否可编辑，防止误改
+- **应用菜单**：从已安装应用列表中选择，添加到气泡菜单，自动保存
 - **特殊动画触发**：一键预览所有特殊动画
-- **气泡位置调节**：实时调整气泡偏移、边距、顶部间距
-- **AI 配置**：API 密钥、提供商、模型、Endpoint 设置
-- **网络搜索**：开关控制是否启用 AI 网络搜索功能
-- **知识库管理**：查看追踪的话题和对话历史
+- **小游戏**：躲太阳游戏开关
 
 设置保存在 `~/Library/Application Support/screen-toy/screen-toy-settings.json`。
+
+## 知乎 API 集成
+
+本项目使用知乎开放平台 API：
+
+| API | 用途 | 鉴权方式 |
+|-----|------|----------|
+| 直答 API | AI 对话（zhida-fast/thinking/agent） | Bearer Token |
+| 知乎搜索 | 站内内容搜索 | Bearer Token |
+| 全网搜索 | 全网内容搜索（知乎搜索失败时 fallback） | Bearer Token |
+| 热榜 API | 获取知乎当前热点 | Bearer Token |
+
+**密钥获取**：从 [知乎开放平台](https://developer.zhihu.com/profile) 获取 Access Secret。
 
 ## 思维气泡实现
 
@@ -134,7 +135,7 @@ src/assets/doodles/arctic_fox/
 2. 动画结束后切换为 `adaptive_base.png` 3-slice 拉伸，适配不同菜单条目数
 3. 菜单 HTML overlay 在动画完成后淡入
 
-## AI 知识库与对话管理
+## 知识库与话题管理
 
 对话数据保存在 `~/Library/Application Support/screen-toy/knowledge.json`，包含：
 
@@ -150,13 +151,6 @@ src/assets/doodles/arctic_fox/
 - **手动管理**: 在设置面板中查看和删除话题
 - **统计信息**: 话题讨论次数、标签分类
 - **数据持久化**: 所有数据本地存储，重启后保留
-
-### 对话特色功能
-
-- **Markdown 渲染**: 支持代码块、列表、标题、引用等格式
-- **Obsidian 集成**: 请求保存时自动生成标准 Markdown 模板
-- **上下文记忆**: 保留对话历史，支持多轮连续对话
-- **错误恢复**: 网络错误后可重试，支持超时处理
 
 ## 精灵图规格
 

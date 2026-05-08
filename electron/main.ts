@@ -1,7 +1,7 @@
 import { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Agent, getDefaultSystemPrompt } from './agent';
+import { Agent, getDefaultSystemPrompt, fetchZhihuHotList, getErrorMessage } from './agent';
 import { exec, execSync } from 'child_process';
 import * as knowledge from './knowledge';
 
@@ -16,6 +16,7 @@ let bubbleWin: BrowserWindow | null = null;
 let mouseInterval: NodeJS.Timeout | null = null;
 let tray: Tray | null = null;
 let agent: Agent | null = null;
+let currentConversationId: string = '';
 
 const WIN_W = 152;
 const WIN_H = 132;
@@ -60,14 +61,13 @@ const currentSettings = {
   displayScale: 0.7,
   selectedApps: [] as string[],
   customApps: [] as { id: string; name: string }[],
-  showWindowBorder: false,
   menuApps: [] as { id: string; name: string; icon: string; cmd: string; appPath: string }[],
   agentApiKey: '',
-  agentApiKey2: '',
-  agentEndpoint: 'https://api.deepseek.com/v1/chat/completions',
-  agentModel: 'deepseek-chat',
-  agentProvider: 'deepseek' as string,
-  enableWebSearch: false,
+  agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
+  agentModel: 'zhida-fast-1p5',
+  agentProvider: 'zhihu' as string,
+  enableDirectAnswer: true,
+  searchType: 'zhihu' as string,
   // Bubble layout
   bubbleScale:       0.85 as number,
   bubbleCanvasTopPad: 55 as number,
@@ -195,7 +195,9 @@ ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
   if (agent &&
       (settings.agentApiKey !== undefined ||
        settings.agentEndpoint !== undefined ||
-       settings.agentModel !== undefined)) {
+       settings.agentModel !== undefined ||
+       settings.searchType !== undefined ||
+       settings.enableDirectAnswer !== undefined)) {
     agent = null; // will be recreated on next dialog-send
   }
 
@@ -205,10 +207,6 @@ ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
   }
   if (settingsWin && !settingsWin.isDestroyed()) {
     settingsWin.webContents.send('settings-current', currentSettings);
-  }
-  const show = !!currentSettings.showWindowBorder;
-  for (const w of [menuWin, dialogWin, bubbleWin, settingsWin]) {
-    if (w && !w.isDestroyed()) w.webContents.send('window-border', show);
   }
 });
 
@@ -325,65 +323,111 @@ ipcMain.on('open-dialog', () => {
 });
 
 ipcMain.on('dialog-send', (_event, msg: string) => {
-  if (!agent) {
-    // Pick the right API key based on provider
-    var provider = (currentSettings.agentProvider as any) || 'deepseek';
-    var apiKey = provider === 'zhihu'
-      ? (currentSettings.agentApiKey2 || currentSettings.agentApiKey)
-      : currentSettings.agentApiKey;
+  // Pick the right API key based on provider
+  var provider = (currentSettings.agentProvider as any) || 'zhihu';
+  var apiKey = currentSettings.agentApiKey || '';
 
-    agent = new Agent({
-      apiKey: apiKey,
-      endpoint: currentSettings.agentEndpoint || 'https://api.deepseek.com/v1/chat/completions',
-      model: currentSettings.agentModel || 'deepseek-chat',
-      systemPrompt: getDefaultSystemPrompt(),
-      enableWebSearch: !!currentSettings.enableWebSearch,
-      provider: provider,
-    });
-  }
-
-  if (!currentSettings.agentApiKey) {
+  if (!apiKey) {
     if (dialogWin && !dialogWin.isDestroyed()) {
-      dialogWin.webContents.send('dialog-message', '请先在 Settings 中设置 API Key（推荐 DeepSeek: https://platform.deepseek.com）');
+      dialogWin.webContents.send('dialog-message', '请先在 Settings 中设置数据平台密钥（从 developer.zhihu.com/profile 获取）');
     }
     return;
+  }
+
+  if (!agent) {
+    console.log('[Agent] Creating with searchType:', currentSettings.searchType, 'enableDirectAnswer:', currentSettings.enableDirectAnswer);
+    agent = new Agent({
+      apiKey: apiKey,
+      endpoint: currentSettings.agentEndpoint || 'https://developer.zhihu.com/v1/chat/completions',
+      model: currentSettings.agentModel || 'zhida-fast-1p5',
+      systemPrompt: getDefaultSystemPrompt(),
+      provider: provider,
+      zhihuAccessSecret: apiKey,
+      enableDirectAnswer: currentSettings.enableDirectAnswer !== false,
+      searchType: currentSettings.searchType || 'zhihu',
+      mbtiEI: (currentSettings as any).mbtiEI || 'E',
+      mbtiSN: (currentSettings as any).mbtiSN || 'N',
+      mbtiTF: (currentSettings as any).mbtiTF || 'F',
+      mbtiJP: (currentSettings as any).mbtiJP || 'J',
+    });
+    // 从 knowledge.json 加载当前会话的历史
+    if (currentConversationId) {
+      var record = knowledge.getConversationById(currentConversationId);
+      if (record && record.messages) {
+        var msgs: import('./agent').ChatMessage[] = [];
+        for (var i = 0; i < record.messages.length; i++) {
+          var m = record.messages[i];
+          if (m.role === 'user' || m.role === 'assistant') {
+            msgs.push({ role: m.role as 'user' | 'assistant', content: m.content });
+          }
+        }
+        agent.setHistory(msgs);
+      }
+    }
   }
 
   if (dialogWin && !dialogWin.isDestroyed()) {
     dialogWin.webContents.send('dialog-message', '...');
   }
 
-  agent.sendMessage(
+  var useStream = (currentSettings.agentProvider as any) === 'zhihu';
+  var sendFn = useStream
+    ? agent.sendMessageStream.bind(agent)
+    : agent.sendMessage.bind(agent);
+
+  sendFn(
     msg,
-    undefined,
+    useStream ? (chunk) => {
+      // 流式：实时发送片段到 dialog 窗口
+      if (dialogWin && !dialogWin.isDestroyed()) {
+        dialogWin.webContents.send('dialog-chunk', chunk);
+      }
+    } : undefined,
     (reply) => {
       if (dialogWin && !dialogWin.isDestroyed()) {
         dialogWin.webContents.send('dialog-message', reply);
       }
 
-      // Auto-save conversation to knowledge base
-      try {
-        var provider = (currentSettings.agentProvider as any) || 'deepseek';
-        knowledge.addConversation({
-          id: Date.now().toString(36),
-          date: new Date().toISOString(),
-          provider: provider,
-          messages: [
-            { role: 'user', content: msg },
-            { role: 'assistant', content: reply },
-          ],
-        });
-      } catch (e) {}
+  // Auto-save conversation to knowledge base
+  var cid = currentConversationId;
+  if (!cid) {
+    cid = Date.now().toString(36);
+    currentConversationId = cid;
+    // Send conversation ID to dialog window so it can track
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-conversation-id', cid);
+    }
+  }
+  try {
+    var prov = (currentSettings.agentProvider as any) || 'zhihu';
+    // 查找已有记录来合并消息
+    var existing = knowledge.getConversationById(cid);
+    var allMessages = existing ? existing.messages.slice() : [];
+    allMessages.push({ role: 'user', content: msg });
+    allMessages.push({ role: 'assistant', content: reply });
+    knowledge.saveOrUpdateConversation({
+      id: cid,
+      date: new Date().toISOString(),
+      provider: prov,
+      messages: allMessages,
+    });
+  } catch (e) {}
     },
     (err) => {
       if (dialogWin && !dialogWin.isDestroyed()) {
         dialogWin.webContents.send('dialog-message', '出错了: ' + err);
       }
     }
-  );
+  ).catch((e: any) => {
+    console.error('[Dialog] sendFn unhandled error:', e);
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-message', '出错了: ' + (e.message || e));
+    }
+  });
 });
 
 ipcMain.on('dialog-clear', () => {
+  currentConversationId = '';
   if (agent) {
     agent.clearHistory();
     if (dialogWin && !dialogWin.isDestroyed()) {
@@ -398,6 +442,69 @@ ipcMain.on('dialog-bubble', (_event, text: string) => {
   }
 });
 
+// ---- Conversation history IPC ----
+ipcMain.handle('conversation-list', async () => {
+  return knowledge.getConversationList();
+});
+
+ipcMain.handle('conversation-load', async (_event, id: string) => {
+  const record = knowledge.getConversationById(id);
+  if (!record) return null;
+  // Load history into agent
+  if (agent) {
+    agent.clearHistory();
+    var msgs: import('./agent').ChatMessage[] = [];
+    for (var i = 0; i < record.messages.length; i++) {
+      var m = record.messages[i];
+      if (m.role === 'user' || m.role === 'assistant') {
+        msgs.push({ role: m.role as 'user' | 'assistant', content: m.content });
+      }
+    }
+    agent.setHistory(msgs);
+  }
+  return { messages: record.messages };
+});
+
+ipcMain.handle('conversation-delete', async (_event, id: string) => {
+  knowledge.deleteConversation(id);
+  return true;
+});
+
+// ---- Hot list IPC ----
+ipcMain.handle('zhihu-hot-list', async () => {
+  var provider = (currentSettings.agentProvider as any) || 'zhihu';
+  var apiKey = currentSettings.agentApiKey;
+  if (provider !== 'zhihu' || !apiKey) {
+    return { data: [], error: '未配置知乎 API Key' };
+  }
+  try {
+    var result = await fetchZhihuHotList(apiKey, 10);
+    return { data: result, error: null };
+  } catch (e: any) {
+    return { data: [], error: e.message || '获取热榜失败' };
+  }
+});
+
+// ---- Save hot list to conversation history ----
+ipcMain.on('save-hotlist-to-history', (_event, text: string) => {
+  if (!currentConversationId) {
+    currentConversationId = Date.now().toString(36);
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-conversation-id', currentConversationId);
+    }
+  }
+  var existing = knowledge.getConversationById(currentConversationId);
+  var allMessages = existing ? existing.messages.slice() : [];
+  allMessages.push({ role: 'user', content: '查看热榜' });
+  allMessages.push({ role: 'assistant', content: text });
+  knowledge.saveOrUpdateConversation({
+    id: currentConversationId,
+    date: new Date().toISOString(),
+    provider: (currentSettings.agentProvider as any) || 'zhihu',
+    messages: allMessages,
+  });
+});
+
 // ---- Knowledge base IPC ----
 
 ipcMain.on('kb-save-conversation', (_event, record: any) => {
@@ -405,7 +512,7 @@ ipcMain.on('kb-save-conversation', (_event, record: any) => {
     id: record.id || Date.now().toString(36),
     date: new Date().toISOString(),
     topic: record.topic || '',
-    provider: record.provider || 'deepseek',
+    provider: record.provider || 'zhihu',
     messages: record.messages || [],
     summary: record.summary || '',
   });
@@ -417,39 +524,14 @@ ipcMain.on('kb-save-conversation', (_event, record: any) => {
   }
 });
 
-ipcMain.handle('kb-get-topics', () => {
-  return knowledge.getTopics();
-});
-
 ipcMain.handle('kb-get-conversations', () => {
   return knowledge.getConversations();
 });
 
-ipcMain.on('kb-remove-topic', (_event, name: string) => {
-  knowledge.removeTopic(name);
-});
-
-ipcMain.handle('kb-extract-topics', async (_event, messages: any[]) => {
-  // Use existing agent to extract topics from conversation
-  if (!agent) {
-    agent = new Agent({
-      apiKey: currentSettings.agentApiKey || '',
-      endpoint: currentSettings.agentEndpoint || 'https://api.deepseek.com/v1/chat/completions',
-      model: currentSettings.agentModel || 'deepseek-chat',
-      systemPrompt: getDefaultSystemPrompt(),
-      provider: 'deepseek',
-    });
-  }
-  try {
-    const history = agent.getHistory();
-    agent.clearHistory();
-    const reply = await agent.sendMessage(
-      '根据以上对话历史，提取用户感兴趣的话题（3-5 个），用 JSON 数组返回，格式：[{"name":"话题","tags":["标签"]}]。只返回 JSON，不要其他文字。'
-    );
-    return reply;
-  } catch (e) {
-    return '[]';
-  }
+// ---- Open API page ----
+ipcMain.on('open-api-page', () => {
+  const { shell } = require('electron');
+  shell.openExternal('https://developer.zhihu.com/profile');
 });
 
 // ---- Bubble window ----
@@ -476,6 +558,7 @@ function createBubbleWindow() {
 
   bubbleWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   bubbleWin.setAlwaysOnTop(true, 'screen-saver');
+  bubbleWin.setIgnoreMouseEvents(true, { forward: true });
   bubbleWin.loadFile(path.join(__dirname, '..', '..', 'src', 'panels', 'bubble.html'));
 
   bubbleWin.on('closed', () => {
@@ -651,6 +734,7 @@ ipcMain.on('hide-sun', () => {
 
 function createSettingsWindow() {
   if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.reload();
     settingsWin.focus();
     return;
   }
@@ -661,9 +745,9 @@ function createSettingsWindow() {
     resizable: false,
     transparent: false,
     frame: true,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
     hasShadow: true,
-    title: 'Screen Toy Settings',
+    title: '直答风格',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -678,6 +762,7 @@ function createSettingsWindow() {
 
   // Send current settings when the window finishes loading
   settingsWin.webContents.on('did-finish-load', () => {
+    console.log('[SettingsWin] Sending settings, menuApps:', currentSettings.menuApps.length);
     settingsWin?.webContents.send('settings-current', currentSettings);
   });
 }
