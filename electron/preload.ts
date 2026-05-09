@@ -58,6 +58,12 @@ contextBridge.exposeInMainWorld('screenToy', {
   onSunData: (callback: (data: { closeness: number; angle: number }) => void) => {
     ipcRenderer.on('sun-data', (_event, data) => callback(data));
   },
+  onEventAnimationsConfig: (callback: (config: any) => void) => {
+    ipcRenderer.on('event-animations-config', (_event, config) => callback(config));
+  },
+  onQuitAnimationsConfig: (callback: (config: any) => void) => {
+    ipcRenderer.on('quit-animations-config', (_event, config) => callback(config));
+  },
 });
 
 contextBridge.exposeInMainWorld('screenToySettings', {
@@ -142,6 +148,12 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
   },
   deleteConversation: (id: string) => {
     return ipcRenderer.invoke('conversation-delete', id);
+  },
+  onRefreshConversationList: (callback: () => void) => {
+    ipcRenderer.on('refresh-conversation-list', () => callback());
+  },
+  onStyleChanged: (callback: (style: any) => void) => {
+    ipcRenderer.on('style-changed', (_event, style) => callback(style));
   },
 });
 

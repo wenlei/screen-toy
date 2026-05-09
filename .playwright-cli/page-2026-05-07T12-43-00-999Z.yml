@@ -1,0 +1,214 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "知乎数据开放平台" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]:
+          - generic [ref=e9]: 知
+        - generic [ref=e10]: 知乎数据开放平台
+      - navigation [ref=e11]:
+        - button "搜索产品" [ref=e12] [cursor=pointer]
+        - button "直答 Agent" [ref=e13] [cursor=pointer]
+        - button "知乎热榜" [ref=e14] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - button "文档中心" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - generic [ref=e20]: 文档中心
+          - button "联系我们" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+            - generic [ref=e26]: 联系我们
+        - button "登录" [ref=e27] [cursor=pointer]
+        - button "注册" [ref=e28] [cursor=pointer]
+  - generic [ref=e30]:
+    - paragraph [ref=e31]: DOCUMENTATION
+    - heading "文档中心" [level=1] [ref=e32]
+    - paragraph [ref=e33]: 接口说明、鉴权方式、示例代码与接入指南。
+  - generic [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]: Docs
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - button "开始使用" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 开始使用
+            - img [ref=e47]
+          - button "鉴权" [ref=e52] [cursor=pointer]
+        - generic [ref=e53]:
+          - button "知乎搜索" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: 知乎搜索
+            - img [ref=e56]
+          - generic [ref=e60]:
+            - button "知乎搜索 API" [ref=e61] [cursor=pointer]
+            - button "知乎搜索 Skill" [ref=e62] [cursor=pointer]
+            - button "知乎搜索 MCP" [ref=e63] [cursor=pointer]
+        - generic [ref=e64]:
+          - button "全网搜索" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]: 全网搜索
+            - img [ref=e67]
+          - generic [ref=e71]:
+            - button "全网搜索 API" [ref=e72] [cursor=pointer]
+            - button "全网搜索 Skill" [ref=e73] [cursor=pointer]
+            - button "全网搜索 MCP" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - button "直答" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: 直答
+            - img [ref=e78]
+          - generic [ref=e82]:
+            - button "直答 API" [ref=e83] [cursor=pointer]
+            - button "直答 Skill" [ref=e84] [cursor=pointer]
+            - button "直答 MCP" [active] [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - button "热榜" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 热榜
+            - img [ref=e89]
+          - generic [ref=e93]:
+            - button "知乎热榜 API" [ref=e94] [cursor=pointer]
+            - button "知乎热榜 Skill" [ref=e95] [cursor=pointer]
+            - button "知乎热榜 MCP" [ref=e96] [cursor=pointer]
+    - generic [ref=e100]:
+      - heading "直答 MCP" [level=1] [ref=e682]
+      - heading "接口说明" [level=2] [ref=e683]
+      - paragraph [ref=e103]: 该服务通过 MCP Streamable HTTP 提供直答能力，适合接入支持 MCP 的 Agent、助手或工作流系统。
+      - paragraph [ref=e105]: 当前服务仅提供工具能力，不提供资源（resources）与提示词（prompts）能力。
+      - heading "接口信息" [level=2] [ref=e684]
+      - table [ref=e121]:
+        - rowgroup [ref=e122]:
+          - row "说明 值" [ref=e685]:
+            - columnheader "说明" [ref=e686]
+            - columnheader "值" [ref=e687]
+        - rowgroup [ref=e127]:
+          - row "HTTP URL https://developer.zhihu.com/api/mcp/zhida/v1/stream" [ref=e688]:
+            - cell "HTTP URL" [ref=e689]
+            - cell "https://developer.zhihu.com/api/mcp/zhida/v1/stream" [ref=e690]:
+              - code [ref=e691]: https://developer.zhihu.com/api/mcp/zhida/v1/stream
+          - row "HTTP Method POST" [ref=e692]:
+            - cell "HTTP Method" [ref=e693]
+            - cell "POST" [ref=e694]:
+              - code [ref=e695]: POST
+          - row "传输方式 MCP Streamable HTTP" [ref=e696]:
+            - cell "传输方式" [ref=e697]
+            - cell "MCP Streamable HTTP" [ref=e698]:
+              - code [ref=e699]: MCP Streamable HTTP
+          - row "工具名 zhida" [ref=e700]:
+            - cell "工具名" [ref=e701]
+            - cell "zhida" [ref=e702]:
+              - code [ref=e703]: zhida
+      - paragraph [ref=e110]: 说明：
+      - list [ref=e113]:
+        - listitem [ref=e114]:
+          - text: 当前通过单一
+          - code [ref=e149]: stream
+          - text: 端点承载
+          - code [ref=e704]: initialize
+          - text: 、
+          - code [ref=e705]: tools/list
+          - text: 、
+          - code [ref=e706]: tools/call
+          - text: 请求。
+        - listitem [ref=e707]:
+          - code [ref=e708]: initialize
+          - text: 、
+          - code [ref=e709]: tools/list
+          - text: 返回 JSON-RPC 响应。
+        - listitem [ref=e710]:
+          - code [ref=e711]: tools/call
+          - text: 以流式方式返回增量结果。
+      - heading "鉴权" [level=2] [ref=e712]
+      - paragraph [ref=e112]: 请求头：
+      - list [ref=e170]:
+        - listitem [ref=e171]:
+          - code [ref=e713]: "Authorization: Bearer <your_access_secret>"
+      - paragraph [ref=e211]: 说明：
+      - list [ref=e714]:
+        - listitem [ref=e715]: 建议每次请求均携带鉴权信息。
+      - heading "工具定义" [level=2] [ref=e716]
+      - heading "zhida" [level=3] [ref=e717]:
+        - code [ref=e718]: zhida
+      - heading "入参" [level=4] [ref=e719]
+      - table [ref=e181]:
+        - rowgroup [ref=e182]:
+          - row "名称 类型 必填 说明" [ref=e489]:
+            - columnheader "名称" [ref=e184]
+            - columnheader "类型" [ref=e185]
+            - columnheader "必填" [ref=e490]
+            - columnheader "说明" [ref=e491]
+        - rowgroup [ref=e188]:
+          - row "query String 是 用户问题" [ref=e720]:
+            - cell "query" [ref=e721]:
+              - code [ref=e378]: query
+            - cell "String" [ref=e494]
+            - cell "是" [ref=e495]
+            - cell "用户问题" [ref=e722]
+          - row "member_id Number 否 预留字段，可不传" [ref=e723]:
+            - cell "member_id" [ref=e724]:
+              - code [ref=e384]: member_id
+            - cell "Number" [ref=e725]
+            - cell "否" [ref=e726]
+            - cell "预留字段，可不传" [ref=e727]
+      - heading "增量返回字段" [level=4] [ref=e728]
+      - paragraph [ref=e240]:
+        - text: 流式事件中的业务数据位于
+        - code [ref=e729]: params.message
+        - text: 下，主要字段如下：
+      - table [ref=e611]:
+        - rowgroup [ref=e612]:
+          - row "名称 类型 说明" [ref=e730]:
+            - columnheader "名称" [ref=e614]
+            - columnheader "类型" [ref=e615]
+            - columnheader "说明" [ref=e731]
+        - rowgroup [ref=e618]:
+          - row "code Int 业务状态码，0 表示成功" [ref=e732]:
+            - cell "code" [ref=e733]:
+              - code [ref=e621]: code
+            - cell "Int" [ref=e734]
+            - cell "业务状态码，0 表示成功" [ref=e735]:
+              - text: 业务状态码，
+              - code [ref=e736]: "0"
+              - text: 表示成功
+          - row "message String 状态说明" [ref=e737]:
+            - cell "message" [ref=e738]:
+              - code [ref=e627]: message
+            - cell "String" [ref=e628]
+            - cell "状态说明" [ref=e739]
+          - row "request_id String 请求标识" [ref=e740]:
+            - cell "request_id" [ref=e741]:
+              - code [ref=e742]: request_id
+            - cell "String" [ref=e743]
+            - cell "请求标识" [ref=e744]
+          - row "data.text String 回答内容增量或当前阶段文本" [ref=e745]:
+            - cell "data.text" [ref=e746]:
+              - code [ref=e747]: data.text
+            - cell "String" [ref=e748]
+            - cell "回答内容增量或当前阶段文本" [ref=e749]
+      - heading "接入流程" [level=2] [ref=e750]
+      - heading "1. 初始化 MCP 会话" [level=3] [ref=e751]
+      - code [ref=e146]: "curl -X POST 'https://developer.zhihu.com/api/mcp/zhida/v1/stream' \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": { \"protocolVersion\": \"2025-10-28\", \"clientInfo\": { \"name\": \"demo-client\", \"version\": \"1.0.0\" }, \"capabilities\": {} } }'"
+      - heading "2. 获取工具列表" [level=3] [ref=e752]
+      - code [ref=e239]: "curl -X POST 'https://developer.zhihu.com/api/mcp/zhida/v1/stream' \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\" }'"
+      - heading "3. 调用直答工具" [level=3] [ref=e753]
+      - code [ref=e516]: "curl -N -X POST 'https://developer.zhihu.com/api/mcp/zhida/v1/stream' \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -H 'Accept: text/event-stream' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 3, \"method\": \"tools/call\", \"params\": { \"name\": \"zhida\", \"arguments\": { \"query\": \"什么是 RAG？\" } } }'"
+      - paragraph [ref=e248]: 流式响应示例：
+      - code [ref=e756]: "event: message data: {\"jsonrpc\":\"2.0\",\"method\":\"zhida\",\"params\":{\"message\":{\"code\":0,\"message\":\"success\",\"request_id\":\"123\",\"data\":{\"text\":\"\"}}}} event: message data: {\"jsonrpc\":\"2.0\",\"method\":\"zhida\",\"params\":{\"message\":{\"code\":0,\"message\":\"success\",\"request_id\":\"123\",\"data\":{\"text\":\"RAG 是 Retrieval-Augmented Generation ...\"}}}} event: message data: {\"jsonrpc\":\"2.0\",\"method\":\"zhida\",\"params\":{\"message\":{\"code\":0,\"message\":\"success\",\"request_id\":\"123\",\"data\":{\"text\":\"RAG 是一种把检索和生成结合起来的问答方式。\"}}}}"
+      - paragraph [ref=e505]: 说明：
+      - list [ref=e757]:
+        - listitem [ref=e758]:
+          - text: 客户端可按到达顺序增量消费
+          - code [ref=e759]: text
+          - text: 字段。
+      - heading "注意事项" [level=2] [ref=e760]
+      - list [ref=e436]:
+        - listitem [ref=e437]:
+          - text: 当前推荐按“工具调用”方式接入，即使用
+          - code [ref=e676]: initialize
+          - text: 、
+          - code [ref=e761]: tools/list
+          - text: 、
+          - code [ref=e762]: tools/call
+          - text: 三个方法完成对接。
+        - listitem [ref=e438]:
+          - code [ref=e543]: tools/call
+          - text: 为流式响应，客户端需要持续读取 SSE 事件并自行拼接结果。
+        - listitem [ref=e544]:
+          - text: 如仅需 OpenAI 兼容格式调用直答能力，可改用
+          - link "直答" [ref=e763] [cursor=pointer]:
+            - /url: /console/docs?key=zhida
+          - text: 文档对应的接口。

@@ -14,6 +14,25 @@ export interface TrackedTopic {
   source: 'manual' | 'auto';
 }
 
+export interface StyleChange {
+  messageIndex: number;
+  mbtiEI: string;
+  mbtiSN: string;
+  mbtiTF: string;
+  mbtiJP: string;
+  timestamp: string;
+}
+
+export interface SessionMeta {
+  mbtiEI?: string;
+  mbtiSN?: string;
+  mbtiTF?: string;
+  mbtiJP?: string;
+  agentModel?: string;
+  searchType?: string;
+  enableDirectAnswer?: boolean;
+}
+
 export interface ConversationRecord {
   id: string;
   date: string;
@@ -21,6 +40,17 @@ export interface ConversationRecord {
   provider: string;
   messages: { role: string; content: string }[];
   summary?: string;
+  // Session 元信息
+  mbtiEI?: string;
+  mbtiSN?: string;
+  mbtiTF?: string;
+  mbtiJP?: string;
+  agentModel?: string;
+  searchType?: string;
+  enableDirectAnswer?: boolean;
+  // 风格变更历史
+  initialStyle?: SessionMeta;
+  styleChanges?: StyleChange[];
 }
 
 export interface KnowledgeBase {
@@ -114,6 +144,7 @@ export interface ConversationListItem {
   title: string;
   date: string;
   messageCount: number;
+  hasStyleChanges: boolean;
 }
 
 export function getConversationList(): ConversationListItem[] {
@@ -131,6 +162,7 @@ export function getConversationList(): ConversationListItem[] {
       title: title,
       date: c.date,
       messageCount: (c.messages || []).length,
+      hasStyleChanges: !!(c.styleChanges && c.styleChanges.length > 0),
     });
   }
   return list;
@@ -149,8 +181,28 @@ export function saveOrUpdateConversation(record: ConversationRecord): void {
     record.topic = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '新对话';
   }
   if (existing >= 0) {
+    // 保留已有的 styleChanges（不覆盖已记录的风格变更）
+    var existingRecord = kb.conversations[existing];
+    if (!record.styleChanges && existingRecord.styleChanges) {
+      record.styleChanges = existingRecord.styleChanges;
+    }
+    if (!record.initialStyle && existingRecord.initialStyle) {
+      record.initialStyle = existingRecord.initialStyle;
+    }
     kb.conversations[existing] = record;
   } else {
+    // 新会话：记录创建时的初始风格
+    if (!record.initialStyle) {
+      record.initialStyle = {
+        mbtiEI: record.mbtiEI,
+        mbtiSN: record.mbtiSN,
+        mbtiTF: record.mbtiTF,
+        mbtiJP: record.mbtiJP,
+        agentModel: record.agentModel,
+        searchType: record.searchType,
+        enableDirectAnswer: record.enableDirectAnswer,
+      };
+    }
     kb.conversations.push(record);
     if (kb.conversations.length > 50) {
       kb.conversations = kb.conversations.slice(-50);
@@ -162,5 +214,22 @@ export function saveOrUpdateConversation(record: ConversationRecord): void {
 export function deleteConversation(id: string): void {
   const kb = loadKnowledge();
   kb.conversations = kb.conversations.filter(function (c: ConversationRecord) { return c.id !== id; });
+  saveKnowledge(kb);
+}
+
+export function recordStyleChange(id: string, newStyle: SessionMeta): void {
+  const kb = loadKnowledge();
+  const conv = kb.conversations.find(function (c: ConversationRecord) { return c.id === id; });
+  if (!conv) return;
+  var change: StyleChange = {
+    messageIndex: (conv.messages || []).length,
+    mbtiEI: newStyle.mbtiEI || '',
+    mbtiSN: newStyle.mbtiSN || '',
+    mbtiTF: newStyle.mbtiTF || '',
+    mbtiJP: newStyle.mbtiJP || '',
+    timestamp: new Date().toISOString(),
+  };
+  if (!conv.styleChanges) conv.styleChanges = [];
+  conv.styleChanges.push(change);
   saveKnowledge(kb);
 }

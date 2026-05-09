@@ -1,0 +1,255 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "知乎数据开放平台" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]:
+          - generic [ref=e9]: 知
+        - generic [ref=e10]: 知乎数据开放平台
+      - navigation [ref=e11]:
+        - button "搜索产品" [ref=e12] [cursor=pointer]
+        - button "直答 Agent" [ref=e13] [cursor=pointer]
+        - button "知乎热榜" [ref=e14] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - button "文档中心" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - generic [ref=e20]: 文档中心
+          - button "联系我们" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+            - generic [ref=e26]: 联系我们
+        - button "登录" [ref=e27] [cursor=pointer]
+        - button "注册" [ref=e28] [cursor=pointer]
+  - generic [ref=e30]:
+    - paragraph [ref=e31]: DOCUMENTATION
+    - heading "文档中心" [level=1] [ref=e32]
+    - paragraph [ref=e33]: 接口说明、鉴权方式、示例代码与接入指南。
+  - generic [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]: Docs
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - button "开始使用" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 开始使用
+            - img [ref=e47]
+          - button "鉴权" [ref=e52] [cursor=pointer]
+        - generic [ref=e53]:
+          - button "知乎搜索" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: 知乎搜索
+            - img [ref=e56]
+          - generic [ref=e60]:
+            - button "知乎搜索 API" [ref=e61] [cursor=pointer]
+            - button "知乎搜索 Skill" [ref=e62] [cursor=pointer]
+            - button "知乎搜索 MCP" [ref=e63] [cursor=pointer]
+        - generic [ref=e64]:
+          - button "全网搜索" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]: 全网搜索
+            - img [ref=e67]
+          - generic [ref=e71]:
+            - button "全网搜索 API" [ref=e72] [cursor=pointer]
+            - button "全网搜索 Skill" [ref=e73] [cursor=pointer]
+            - button "全网搜索 MCP" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - button "直答" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: 直答
+            - img [ref=e78]
+          - generic [ref=e82]:
+            - button "直答 API" [ref=e83] [cursor=pointer]
+            - button "直答 Skill" [active] [ref=e84] [cursor=pointer]
+            - button "直答 MCP" [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - button "热榜" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 热榜
+            - img [ref=e89]
+          - generic [ref=e93]:
+            - button "知乎热榜 API" [ref=e94] [cursor=pointer]
+            - button "知乎热榜 Skill" [ref=e95] [cursor=pointer]
+            - button "知乎热榜 MCP" [ref=e96] [cursor=pointer]
+    - generic [ref=e100]:
+      - heading "直答 Skill" [level=1] [ref=e556]
+      - heading "能力说明" [level=2] [ref=e557]
+      - paragraph [ref=e103]: 该 Skill 提供面向 AI 助手与 Agent 的直答能力，适合处理用户提问、知识问答、内容解释与总结等场景。
+      - paragraph [ref=e105]: 与底层接口相比，Skill 更强调面向助手调用的易用性，输入更简洁，输出更适合直接被上层应用消费。
+      - heading "下载方式" [level=2] [ref=e558]
+      - paragraph [ref=e110]: 可直接下载 Skill 压缩包：
+      - list [ref=e113]:
+        - listitem [ref=e114]:
+          - code [ref=e149]: https://developer.zhihu.com/download/zhida_skills.zip
+      - heading "适用场景" [level=2] [ref=e559]
+      - list [ref=e170]:
+        - listitem [ref=e171]: 通用问答
+        - listitem [ref=e560]: 知识解释与概念说明
+        - listitem [ref=e561]: 内容总结与归纳
+        - listitem [ref=e562]: 多轮对话中的单轮回答生成
+      - heading "输入参数" [level=2] [ref=e563]
+      - paragraph [ref=e112]: 支持两种输入方式：
+      - heading "简化输入" [level=3] [ref=e564]
+      - table [ref=e121]:
+        - rowgroup [ref=e122]:
+          - row "名称 类型 必填 说明" [ref=e565]:
+            - columnheader "名称" [ref=e566]
+            - columnheader "类型" [ref=e567]
+            - columnheader "必填" [ref=e568]
+            - columnheader "说明" [ref=e569]
+        - rowgroup [ref=e127]:
+          - row "query String 是 用户问题" [ref=e570]:
+            - cell "query" [ref=e571]:
+              - code [ref=e572]: query
+            - cell "String" [ref=e573]
+            - cell "是" [ref=e574]
+            - cell "用户问题" [ref=e575]
+          - row "model String 是 模型档位，支持 zhida-fast-1p5、zhida-thinking-1p5、zhida-agent" [ref=e576]:
+            - cell "model" [ref=e577]:
+              - code [ref=e578]: model
+            - cell "String" [ref=e579]
+            - cell "是" [ref=e580]
+            - cell "模型档位，支持 zhida-fast-1p5、zhida-thinking-1p5、zhida-agent" [ref=e581]:
+              - text: 模型档位，支持
+              - code [ref=e582]: zhida-fast-1p5
+              - text: 、
+              - code [ref=e583]: zhida-thinking-1p5
+              - text: 、
+              - code [ref=e584]: zhida-agent
+          - row "stream Bool 否 是否流式处理，默认 false" [ref=e585]:
+            - cell "stream" [ref=e586]:
+              - code [ref=e587]: stream
+            - cell "Bool" [ref=e588]
+            - cell "否" [ref=e589]
+            - cell "是否流式处理，默认 false" [ref=e590]:
+              - text: 是否流式处理，默认
+              - code [ref=e591]: "false"
+      - paragraph [ref=e211]: 示例：
+      - code [ref=e146]:
+        - text: "{ \"query\": \"什么是 RAG？\", \"model\": \"zhida-thinking-1p5\", \"stream\": false"
+        - text: "}"
+      - heading "对话式输入" [level=3] [ref=e592]
+      - table [ref=e181]:
+        - rowgroup [ref=e182]:
+          - row "名称 类型 必填 说明" [ref=e489]:
+            - columnheader "名称" [ref=e184]
+            - columnheader "类型" [ref=e185]
+            - columnheader "必填" [ref=e490]
+            - columnheader "说明" [ref=e491]
+        - rowgroup [ref=e188]:
+          - row "model String 是 模型档位，支持 zhida-fast-1p5、zhida-thinking-1p5、zhida-agent" [ref=e593]:
+            - cell "model" [ref=e594]:
+              - code [ref=e378]: model
+            - cell "String" [ref=e494]
+            - cell "是" [ref=e495]
+            - cell "模型档位，支持 zhida-fast-1p5、zhida-thinking-1p5、zhida-agent" [ref=e595]:
+              - text: 模型档位，支持
+              - code [ref=e596]: zhida-fast-1p5
+              - text: 、
+              - code [ref=e597]: zhida-thinking-1p5
+              - text: 、
+              - code [ref=e598]: zhida-agent
+          - row "messages Array[Message] 是 对话消息列表" [ref=e599]:
+            - cell "messages" [ref=e600]:
+              - code [ref=e384]: messages
+            - cell "Array[Message]" [ref=e601]
+            - cell "是" [ref=e602]
+            - cell "对话消息列表" [ref=e603]
+          - row "stream Bool 否 是否流式处理，默认 false" [ref=e604]:
+            - cell "stream" [ref=e605]:
+              - code [ref=e606]: stream
+            - cell "Bool" [ref=e607]
+            - cell "否" [ref=e608]
+            - cell "是否流式处理，默认 false" [ref=e609]:
+              - text: 是否流式处理，默认
+              - code [ref=e610]: "false"
+      - paragraph [ref=e240]: Message：
+      - table [ref=e611]:
+        - rowgroup [ref=e612]:
+          - row "名称 类型 必填 说明" [ref=e613]:
+            - columnheader "名称" [ref=e614]
+            - columnheader "类型" [ref=e615]
+            - columnheader "必填" [ref=e616]
+            - columnheader "说明" [ref=e617]
+        - rowgroup [ref=e618]:
+          - row "role String 否 消息角色" [ref=e619]:
+            - cell "role" [ref=e620]:
+              - code [ref=e621]: role
+            - cell "String" [ref=e622]
+            - cell "否" [ref=e623]
+            - cell "消息角色" [ref=e624]
+          - row "content String 是 消息内容" [ref=e625]:
+            - cell "content" [ref=e626]:
+              - code [ref=e627]: content
+            - cell "String" [ref=e628]
+            - cell "是" [ref=e629]
+            - cell "消息内容" [ref=e630]
+      - paragraph [ref=e248]: 示例：
+      - code [ref=e239]:
+        - text: "{ \"model\": \"zhida-agent\", \"messages\": [ { \"role\": \"user\", \"content\": \"请总结一下 RAG 的核心思路\" } ], \"stream\": true"
+        - text: "}"
+      - heading "输出参数" [level=2] [ref=e631]
+      - paragraph [ref=e505]: 返回 JSON，主要字段如下：
+      - table [ref=e632]:
+        - rowgroup [ref=e633]:
+          - row "名称 类型 说明" [ref=e634]:
+            - columnheader "名称" [ref=e635]
+            - columnheader "类型" [ref=e636]
+            - columnheader "说明" [ref=e637]
+        - rowgroup [ref=e638]:
+          - row "code Int 调用结果状态码，0 表示成功" [ref=e639]:
+            - cell "code" [ref=e640]:
+              - code [ref=e641]: code
+            - cell "Int" [ref=e642]
+            - cell "调用结果状态码，0 表示成功" [ref=e643]:
+              - text: 调用结果状态码，
+              - code [ref=e644]: "0"
+              - text: 表示成功
+          - row "id String 请求标识" [ref=e645]:
+            - cell "id" [ref=e646]:
+              - code [ref=e647]: id
+            - cell "String" [ref=e648]
+            - cell "请求标识" [ref=e649]
+          - row "model String 实际使用的模型" [ref=e650]:
+            - cell "model" [ref=e651]:
+              - code [ref=e652]: model
+            - cell "String" [ref=e653]
+            - cell "实际使用的模型" [ref=e654]
+          - row "stream Bool 是否按流式方式处理" [ref=e655]:
+            - cell "stream" [ref=e656]:
+              - code [ref=e657]: stream
+            - cell "Bool" [ref=e658]
+            - cell "是否按流式方式处理" [ref=e659]
+          - row "content String 回答内容" [ref=e660]:
+            - cell "content" [ref=e661]:
+              - code [ref=e662]: content
+            - cell "String" [ref=e663]
+            - cell "回答内容" [ref=e664]
+          - row "reasoning_content String 推理或思考内容" [ref=e665]:
+            - cell "reasoning_content" [ref=e666]:
+              - code [ref=e667]: reasoning_content
+            - cell "String" [ref=e668]
+            - cell "推理或思考内容" [ref=e669]
+          - row "finish_reason String 结束原因" [ref=e670]:
+            - cell "finish_reason" [ref=e671]:
+              - code [ref=e672]: finish_reason
+            - cell "String" [ref=e673]
+            - cell "结束原因" [ref=e674]
+      - paragraph [ref=e512]: 响应示例：
+      - code [ref=e516]:
+        - text: "{ \"code\": 0, \"id\": \"chatcmpl-xxxx\", \"model\": \"zhida-thinking-1p5\", \"stream\": false, \"content\": \"RAG 是 Retrieval-Augmented Generation 的缩写，核心思路是在生成回答前先检索相关资料，再结合检索结果生成更准确的回答。\", \"reasoning_content\": \"先解释缩写，再说明工作流程与价值。\", \"finish_reason\": \"stop\""
+        - text: "}"
+      - heading "使用建议" [level=2] [ref=e675]
+      - list [ref=e436]:
+        - listitem [ref=e437]:
+          - code [ref=e676]: model
+          - text: 为必填，不再提供默认模型兜底。
+        - listitem [ref=e438]:
+          - text: 对于通用问答场景，建议优先使用
+          - code [ref=e543]: zhida-fast-1p5
+          - text: 。
+        - listitem [ref=e544]:
+          - text: 对于更强调推理质量的场景，建议使用
+          - code [ref=e677]: zhida-thinking-1p5
+          - text: 。
+        - listitem [ref=e678]:
+          - text: 对于任务更复杂、需要更强规划能力的场景，可使用
+          - code [ref=e679]: zhida-agent
+          - text: 。
+        - listitem [ref=e680]:
+          - text: 简单问答场景可直接传
+          - code [ref=e681]: query
+          - text: ，接入成本更低。

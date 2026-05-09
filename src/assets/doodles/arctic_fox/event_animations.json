@@ -1,0 +1,11 @@
+{
+  "events": [
+    {
+      "date": "05-09",
+      "animations": {
+        "enter": "zongzi_enter_sheet.png",
+        "quit": "quit_sheet.png"
+      }
+    }
+  ]
+}

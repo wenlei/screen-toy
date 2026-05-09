@@ -68,6 +68,10 @@ const currentSettings = {
   agentProvider: 'zhihu' as string,
   enableDirectAnswer: true,
   searchType: 'zhihu' as string,
+  mbtiEI: 'E' as string,
+  mbtiSN: 'N' as string,
+  mbtiTF: 'F' as string,
+  mbtiJP: 'J' as string,
   // Bubble layout
   bubbleScale:       0.85 as number,
   bubbleCanvasTopPad: 55 as number,
@@ -127,6 +131,37 @@ function createWindow() {
   win.loadFile(path.join(__dirname, '..', '..', 'src', 'index.html'));
   win.show();
   win.setIgnoreMouseEvents(true, { forward: true });
+
+  // 注入事件动画配置（入场 + 退场）
+  if (win) {
+    win.webContents.on('did-finish-load', () => {
+      try {
+        var configPath = path.join(__dirname, '..', '..', 'src', 'assets', 'doodles', 'arctic_fox', 'event_animations.json');
+        if (!fs.existsSync(configPath)) return;
+        var fullConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        var today = new Date();
+        var mmdd = String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+        var event = (fullConfig.events || []).find(function (e: any) { return e.date === mmdd; });
+        if (!event) return;
+
+        // 如果事件引用了 group，从 resource_groups 中解析出 animations
+        if (event.group && !event.animations && fullConfig.resource_groups) {
+          event.animations = fullConfig.resource_groups[event.group];
+        }
+        if (!event.animations) return;
+        event.config = fullConfig;
+
+        // 根据 animations 中是否存在对应键来分别下发
+        if (event.animations.enter) {
+          win!.webContents.send('event-animations-config', event);
+        }
+        if (event.animations.quit) {
+          win!.webContents.send('quit-animations-config', event);
+        }
+      } catch (e) {}
+    });
+  }
 
   win.on('closed', () => {
     win = null;
@@ -197,8 +232,33 @@ ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
        settings.agentEndpoint !== undefined ||
        settings.agentModel !== undefined ||
        settings.searchType !== undefined ||
-       settings.enableDirectAnswer !== undefined)) {
+       settings.enableDirectAnswer !== undefined ||
+       settings.mbtiEI !== undefined ||
+       settings.mbtiSN !== undefined ||
+       settings.mbtiTF !== undefined ||
+       settings.mbtiJP !== undefined)) {
     agent = null; // will be recreated on next dialog-send
+  }
+
+  // 风格变更：记录到当前 session
+  if (currentConversationId &&
+      (settings.mbtiEI !== undefined || settings.mbtiSN !== undefined ||
+       settings.mbtiTF !== undefined || settings.mbtiJP !== undefined)) {
+    knowledge.recordStyleChange(currentConversationId, {
+      mbtiEI: (currentSettings as any).mbtiEI,
+      mbtiSN: (currentSettings as any).mbtiSN,
+      mbtiTF: (currentSettings as any).mbtiTF,
+      mbtiJP: (currentSettings as any).mbtiJP,
+    });
+    // 通知 dialog 风格变更
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('style-changed', {
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+      });
+    }
   }
 
   saveSettings();
@@ -312,7 +372,6 @@ function createDialogWindow() {
   });
 
   dialogWin.loadFile(path.join(__dirname, '..', '..', 'src', 'panels', 'dialog.html'));
-
   dialogWin.on('closed', () => {
     dialogWin = null;
   });
@@ -398,20 +457,31 @@ ipcMain.on('dialog-send', (_event, msg: string) => {
       dialogWin.webContents.send('dialog-conversation-id', cid);
     }
   }
-  try {
-    var prov = (currentSettings.agentProvider as any) || 'zhihu';
-    // 查找已有记录来合并消息
-    var existing = knowledge.getConversationById(cid);
-    var allMessages = existing ? existing.messages.slice() : [];
-    allMessages.push({ role: 'user', content: msg });
-    allMessages.push({ role: 'assistant', content: reply });
-    knowledge.saveOrUpdateConversation({
-      id: cid,
-      date: new Date().toISOString(),
-      provider: prov,
-      messages: allMessages,
-    });
-  } catch (e) {}
+    try {
+      var prov = (currentSettings.agentProvider as any) || 'zhihu';
+      // 查找已有记录来合并消息
+      var existing = knowledge.getConversationById(cid);
+      var allMessages = existing ? existing.messages.slice() : [];
+      allMessages.push({ role: 'user', content: msg });
+      allMessages.push({ role: 'assistant', content: reply });
+      knowledge.saveOrUpdateConversation({
+        id: cid,
+        date: new Date().toISOString(),
+        provider: prov,
+        messages: allMessages,
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+        agentModel: currentSettings.agentModel,
+        searchType: currentSettings.searchType,
+        enableDirectAnswer: currentSettings.enableDirectAnswer,
+      });
+      // 通知 dialog 刷新会话列表
+      if (dialogWin && !dialogWin.isDestroyed()) {
+        dialogWin.webContents.send('refresh-conversation-list');
+      }
+    } catch (e) {}
     },
     (err) => {
       if (dialogWin && !dialogWin.isDestroyed()) {
@@ -432,6 +502,7 @@ ipcMain.on('dialog-clear', () => {
     agent.clearHistory();
     if (dialogWin && !dialogWin.isDestroyed()) {
       dialogWin.webContents.send('dialog-message', '(新会话)');
+      dialogWin.webContents.send('refresh-conversation-list');
     }
   }
 });
@@ -450,6 +521,14 @@ ipcMain.handle('conversation-list', async () => {
 ipcMain.handle('conversation-load', async (_event, id: string) => {
   const record = knowledge.getConversationById(id);
   if (!record) return null;
+  // 恢复元信息到 currentSettings
+  if (record.mbtiEI) (currentSettings as any).mbtiEI = record.mbtiEI;
+  if (record.mbtiSN) (currentSettings as any).mbtiSN = record.mbtiSN;
+  if (record.mbtiTF) (currentSettings as any).mbtiTF = record.mbtiTF;
+  if (record.mbtiJP) (currentSettings as any).mbtiJP = record.mbtiJP;
+  if (record.agentModel) currentSettings.agentModel = record.agentModel;
+  if (record.searchType) currentSettings.searchType = record.searchType;
+  if (record.enableDirectAnswer !== undefined) currentSettings.enableDirectAnswer = record.enableDirectAnswer;
   // Load history into agent
   if (agent) {
     agent.clearHistory();
@@ -462,7 +541,12 @@ ipcMain.handle('conversation-load', async (_event, id: string) => {
     }
     agent.setHistory(msgs);
   }
-  return { messages: record.messages };
+  return {
+    messages: record.messages,
+    initialStyle: record.initialStyle,
+    styleChanges: record.styleChanges,
+    mbtiEI: record.mbtiEI, mbtiSN: record.mbtiSN, mbtiTF: record.mbtiTF, mbtiJP: record.mbtiJP,
+  };
 });
 
 ipcMain.handle('conversation-delete', async (_event, id: string) => {
@@ -478,7 +562,7 @@ ipcMain.handle('zhihu-hot-list', async () => {
     return { data: [], error: '未配置知乎 API Key' };
   }
   try {
-    var result = await fetchZhihuHotList(apiKey, 10);
+    var result = await fetchZhihuHotList(apiKey, (currentSettings as any).hotListLimit || 10);
     return { data: result, error: null };
   } catch (e: any) {
     return { data: [], error: e.message || '获取热榜失败' };
@@ -502,7 +586,18 @@ ipcMain.on('save-hotlist-to-history', (_event, text: string) => {
     date: new Date().toISOString(),
     provider: (currentSettings.agentProvider as any) || 'zhihu',
     messages: allMessages,
+    mbtiEI: (currentSettings as any).mbtiEI,
+    mbtiSN: (currentSettings as any).mbtiSN,
+    mbtiTF: (currentSettings as any).mbtiTF,
+    mbtiJP: (currentSettings as any).mbtiJP,
+    agentModel: currentSettings.agentModel,
+    searchType: currentSettings.searchType,
+    enableDirectAnswer: currentSettings.enableDirectAnswer,
   });
+  // 通知 dialog 刷新会话列表
+  if (dialogWin && !dialogWin.isDestroyed()) {
+    dialogWin.webContents.send('refresh-conversation-list');
+  }
 });
 
 // ---- Knowledge base IPC ----

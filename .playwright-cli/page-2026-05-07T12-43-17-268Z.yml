@@ -1,0 +1,173 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "知乎数据开放平台" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]:
+          - generic [ref=e9]: 知
+        - generic [ref=e10]: 知乎数据开放平台
+      - navigation [ref=e11]:
+        - button "搜索产品" [ref=e12] [cursor=pointer]
+        - button "直答 Agent" [ref=e13] [cursor=pointer]
+        - button "知乎热榜" [ref=e14] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - button "文档中心" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - generic [ref=e20]: 文档中心
+          - button "联系我们" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+            - generic [ref=e26]: 联系我们
+        - button "登录" [ref=e27] [cursor=pointer]
+        - button "注册" [ref=e28] [cursor=pointer]
+  - generic [ref=e30]:
+    - paragraph [ref=e31]: DOCUMENTATION
+    - heading "文档中心" [level=1] [ref=e32]
+    - paragraph [ref=e33]: 接口说明、鉴权方式、示例代码与接入指南。
+  - generic [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]: Docs
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - button "开始使用" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 开始使用
+            - img [ref=e47]
+          - button "鉴权" [ref=e52] [cursor=pointer]
+        - generic [ref=e53]:
+          - button "知乎搜索" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: 知乎搜索
+            - img [ref=e56]
+          - generic [ref=e60]:
+            - button "知乎搜索 API" [ref=e61] [cursor=pointer]
+            - button "知乎搜索 Skill" [ref=e62] [cursor=pointer]
+            - button "知乎搜索 MCP" [ref=e63] [cursor=pointer]
+        - generic [ref=e64]:
+          - button "全网搜索" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]: 全网搜索
+            - img [ref=e67]
+          - generic [ref=e71]:
+            - button "全网搜索 API" [ref=e72] [cursor=pointer]
+            - button "全网搜索 Skill" [ref=e73] [cursor=pointer]
+            - button "全网搜索 MCP" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - button "直答" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: 直答
+            - img [ref=e78]
+          - generic [ref=e82]:
+            - button "直答 API" [ref=e83] [cursor=pointer]
+            - button "直答 Skill" [ref=e84] [cursor=pointer]
+            - button "直答 MCP" [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - button "热榜" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 热榜
+            - img [ref=e89]
+          - generic [ref=e93]:
+            - button "知乎热榜 API" [ref=e94] [cursor=pointer]
+            - button "知乎热榜 Skill" [active] [ref=e95] [cursor=pointer]
+            - button "知乎热榜 MCP" [ref=e96] [cursor=pointer]
+    - generic [ref=e100]:
+      - heading "知乎热榜 Skill" [level=1] [ref=e764]
+      - heading "能力说明" [level=2] [ref=e765]
+      - paragraph [ref=e103]: 该 Skill 提供面向 AI 助手与 Agent 的知乎热榜获取能力，适合用于热点追踪、内容推荐、趋势发现等场景。
+      - paragraph [ref=e105]: 输出为包含标题、链接、缩略图与摘要的热榜条目列表，便于上层应用直接消费。
+      - heading "下载方式" [level=2] [ref=e766]
+      - paragraph [ref=e110]: 可直接下载 Skill 压缩包：
+      - list [ref=e113]:
+        - listitem [ref=e114]:
+          - code [ref=e149]: https://developer.zhihu.com/download/hot_list_skills.zip
+      - heading "适用场景" [level=2] [ref=e767]
+      - list [ref=e170]:
+        - listitem [ref=e171]: 获取当前知乎热点内容
+        - listitem [ref=e768]: 为助手提供热点推荐素材
+        - listitem [ref=e769]: 用于趋势观察与热点发现
+      - heading "输入参数" [level=2] [ref=e770]
+      - table [ref=e121]:
+        - rowgroup [ref=e122]:
+          - row "名称 类型 必填 说明" [ref=e771]:
+            - columnheader "名称" [ref=e772]
+            - columnheader "类型" [ref=e773]
+            - columnheader "必填" [ref=e774]
+            - columnheader "说明" [ref=e775]
+        - rowgroup [ref=e127]:
+          - row "limit Int 否 期望返回数量，默认 30，最大 30" [ref=e776]:
+            - cell "limit" [ref=e777]:
+              - code [ref=e778]: limit
+            - cell "Int" [ref=e779]
+            - cell "否" [ref=e780]
+            - cell "期望返回数量，默认 30，最大 30" [ref=e781]:
+              - text: 期望返回数量，默认
+              - code [ref=e782]: "30"
+              - text: ，最大
+              - code [ref=e783]: "30"
+      - paragraph [ref=e112]: 示例：
+      - code [ref=e146]:
+        - text: "{ \"limit\": 10"
+        - text: "}"
+      - heading "输出参数" [level=2] [ref=e784]
+      - paragraph [ref=e211]: 返回 JSON，主要字段如下：
+      - table [ref=e181]:
+        - rowgroup [ref=e182]:
+          - row "名称 类型 说明" [ref=e785]:
+            - columnheader "名称" [ref=e184]
+            - columnheader "类型" [ref=e185]
+            - columnheader "说明" [ref=e786]
+        - rowgroup [ref=e188]:
+          - row "code Int 调用结果状态码，0 表示成功" [ref=e787]:
+            - cell "code" [ref=e788]:
+              - code [ref=e378]: code
+            - cell "Int" [ref=e789]
+            - cell "调用结果状态码，0 表示成功" [ref=e790]:
+              - text: 调用结果状态码，
+              - code [ref=e791]: "0"
+              - text: 表示成功
+          - row "message String 状态说明" [ref=e792]:
+            - cell "message" [ref=e793]:
+              - code [ref=e384]: message
+            - cell "String" [ref=e794]
+            - cell "状态说明" [ref=e795]
+          - row "total Int 实际热榜总条数" [ref=e796]:
+            - cell "total" [ref=e797]:
+              - code [ref=e798]: total
+            - cell "Int" [ref=e799]
+            - cell "实际热榜总条数" [ref=e800]
+          - row "item_count Int 实际返回条数" [ref=e801]:
+            - cell "item_count" [ref=e802]:
+              - code [ref=e803]: item_count
+            - cell "Int" [ref=e804]
+            - cell "实际返回条数" [ref=e805]
+          - row "items Array[Item] 热榜列表" [ref=e806]:
+            - cell "items" [ref=e807]:
+              - code [ref=e808]: items
+            - cell "Array[Item]" [ref=e809]
+            - cell "热榜列表" [ref=e810]
+      - paragraph [ref=e240]: Item：
+      - table [ref=e611]:
+        - rowgroup [ref=e612]:
+          - row "名称 类型 说明" [ref=e730]:
+            - columnheader "名称" [ref=e614]
+            - columnheader "类型" [ref=e615]
+            - columnheader "说明" [ref=e731]
+        - rowgroup [ref=e618]:
+          - row "title String 热榜标题" [ref=e811]:
+            - cell "title" [ref=e812]:
+              - code [ref=e621]: title
+            - cell "String" [ref=e813]
+            - cell "热榜标题" [ref=e814]
+          - row "url String 对应链接" [ref=e815]:
+            - cell "url" [ref=e816]:
+              - code [ref=e627]: url
+            - cell "String" [ref=e628]
+            - cell "对应链接" [ref=e817]
+          - row "thumbnail_url String 缩略图 URL，无封面图时为空字符串" [ref=e818]:
+            - cell "thumbnail_url" [ref=e819]:
+              - code [ref=e742]: thumbnail_url
+            - cell "String" [ref=e743]
+            - cell "缩略图 URL，无封面图时为空字符串" [ref=e820]
+          - row "summary String 内容摘要，无摘要时为空字符串" [ref=e821]:
+            - cell "summary" [ref=e822]:
+              - code [ref=e747]: summary
+            - cell "String" [ref=e748]
+            - cell "内容摘要，无摘要时为空字符串" [ref=e823]
+      - paragraph [ref=e248]: 响应示例：
+      - code [ref=e239]:
+        - text: "{ \"code\": 0, \"message\": \"success\", \"total\": 10, \"item_count\": 10, \"items\": [ { \"title\": \"如何评价某个热点问题？\", \"url\": \"https://www.zhihu.com/question/123456789\", \"thumbnail_url\": \"https://pic1.zhimg.com/v2-d4b0f8158e064dbcc71eb6ce970230a9.jpg\", \"summary\": \"这是该问题的内容摘要\" } ]"
+        - text: "}"
