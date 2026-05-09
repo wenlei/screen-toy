@@ -626,7 +626,7 @@ ipcMain.handle('kb-get-conversations', () => {
 // ---- Open API page ----
 ipcMain.on('open-api-page', () => {
   const { shell } = require('electron');
-  shell.openExternal('https://developer.zhihu.com/profile');
+  shell.openExternal('https://www.zhihu.com/ring/moltbook');
 });
 
 // ---- Bubble window ----

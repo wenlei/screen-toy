@@ -71,9 +71,11 @@ contextBridge.exposeInMainWorld('screenToySettings', {
     ipcRenderer.send('apply-settings', settings);
   },
   onLoad: (callback: (settings: any) => void) => {
+    ipcRenderer.removeAllListeners('settings-current');
     ipcRenderer.on('settings-current', (_event, settings) => callback(settings));
   },
   onApps: (callback: (apps: any) => void) => {
+    ipcRenderer.removeAllListeners('available-apps');
     ipcRenderer.on('available-apps', (_event, apps) => callback(apps));
   },
   requestCurrent: () => {
@@ -92,6 +94,7 @@ contextBridge.exposeInMainWorld('screenToySettings', {
     ipcRenderer.send('get-installed-apps');
   },
   onInstalledApps: (callback: (apps: string[]) => void) => {
+    ipcRenderer.removeAllListeners('installed-apps');
     ipcRenderer.on('installed-apps', (_event, apps) => callback(apps));
   },
   openApiPage: () => {
