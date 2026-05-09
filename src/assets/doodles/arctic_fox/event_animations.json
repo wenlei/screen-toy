@@ -6,6 +6,13 @@
         "enter": "zongzi_enter_sheet.png",
         "quit": "quit_sheet.png"
       }
+    },
+    {
+      "date": "06-01",
+      "animations": {
+        "enter": "children_day_enter_sheet.png",
+        "quit": "quit_sheet.png"
+      }
     }
   ]
 }
