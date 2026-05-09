@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" />
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font:14px/1.5 -apple-system,sans-serif; background:#F5F5F7; color:#1C1C1E; height:100vh; display:flex; flex-direction:column; }
@@ -42,6 +43,9 @@
   .msg.bot em { font-style:italic; }
   .msg.bot a { color:#007AFF; text-decoration:underline; word-break:break-all; }
   .msg.bot a:hover { opacity:0.8; }
+  .copy-btn { position:absolute; bottom:4px; right:4px; background:none; border:1px solid #E5E5EA; border-radius:4px; padding:2px 4px; cursor:pointer; opacity:0; transition:opacity 0.2s; font-size:14px; color:#8E8E93; }
+  .msg.bot:hover .copy-btn { opacity:1; }
+  .copy-btn:hover { background:#F2F2F7; color:#333; }
 
   .input-row { display:flex; padding:10px 12px; background:#FFFFFF; border-top:1px solid #E5E5EA; gap:8px; }
   .input-row input { flex:1; background:#F2F2F7; border:1px solid #E5E5EA; color:#1C1C1E; padding:8px 12px; border-radius:8px; font-size:13px; outline:none; }

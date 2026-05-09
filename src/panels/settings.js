@@ -6,8 +6,7 @@
     agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
     agentModel:    'zhida-fast-1p5',
     agentProvider: 'zhihu',
-    agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
-    agentModel:    'zhida-fast-1p5',
+    hotListLimit: 10,
     mbtiEI: 'E',
     mbtiSN: 'N',
     mbtiTF: 'F',
@@ -15,6 +14,8 @@
   };
 
   var menuApps = [];
+
+  var ZHIHU_MODELS = ['zhida-fast-1p5', 'zhida-thinking-1p5', 'zhida-agent'];
 
   var els = {
     appList:          document.getElementById('appList'),
@@ -29,6 +30,8 @@
     zhihuModel:       document.getElementById('zhihuModel'),
     toggleApiKey:    document.getElementById('toggleApiKey'),
     openApiPage:      document.getElementById('openApiPage'),
+    hotListLimit:     document.getElementById('hotListLimit'),
+    hotListLimitVal:  document.getElementById('hotListLimitVal'),
   };
 
   // ---- Animation buttons ----
@@ -40,6 +43,7 @@
     { id: 'apple',      label: '狐顿',                icon: '🍎', durationMs: 4000 },
     { id: 'freeze',     label: '冻成冰棍',            icon: '🧊', durationMs: 6000 },
     { id: 'bignose',    label: '大鼻子',              icon: '👃', durationMs: 2000 },
+    { id: 'flower',     label: '人生亦如是',           icon: '🌸', durationMs: 5000 },
   ];
 
   var animTimers = {};
@@ -148,6 +152,7 @@
       agentEndpoint:   'https://developer.zhihu.com/v1/chat/completions',
       agentModel:      els.zhihuModel.value,
       agentProvider:   els.agentProvider.value,
+      hotListLimit:    parseInt(els.hotListLimit.value) || 10,
       mbtiEI:          mbtiValues.EI,
       mbtiSN:          mbtiValues.SN,
       mbtiTF:          mbtiValues.TF,
@@ -171,6 +176,11 @@
       }
       console.log('[Settings] zhihuModel set');
     } catch(e) { console.log('[Settings] zhihuModel error:', e.message); }
+    // hotListLimit
+    if (v.hotListLimit !== undefined) {
+      els.hotListLimit.value = v.hotListLimit;
+      els.hotListLimitVal.textContent = v.hotListLimit;
+    }
     // 先处理 menuApps，确保即使 MBTI 代码出错也能加载应用
     try {
       if (v.menuApps) menuApps = v.menuApps.slice();
@@ -272,6 +282,16 @@
     });
   }
 
+  // ---- 热榜条目数滑块 ----
+  if (els.hotListLimit) {
+    els.hotListLimit.addEventListener('input', function () {
+      els.hotListLimitVal.textContent = els.hotListLimit.value;
+      if (window.screenToySettings) {
+        window.screenToySettings.apply({ hotListLimit: parseInt(els.hotListLimit.value) || 10 });
+      }
+    });
+  }
+
   function setupApiKeyToggle(btnId, inpId) {
     var btn = document.getElementById(btnId);
     var inp = document.getElementById(inpId);
@@ -289,9 +309,8 @@
   setupApiKeyToggle('toggleApiKey', 'agentApiKey');
 
   // ---- Lock/Unlock API keys ----
-  var aiLocked = false;
+  var aiLocked = true;
   var lockBtn = document.getElementById('toggleLock');
-  console.log('[Settings] lockBtn:', lockBtn ? 'found' : 'NOT FOUND');
 
   function applyAiLock() {
     var keyInputs = [els.agentApiKey];
@@ -301,20 +320,30 @@
       inp.style.opacity = aiLocked ? '0.6' : '1';
       inp.style.cursor = aiLocked ? 'default' : 'text';
     });
-    lockBtn.textContent = aiLocked ? 'lock' : 'lock_open';
-    lockBtn.title = aiLocked ? '解锁编辑 API Key' : '锁定 API Key';
-    lockBtn.style.color = aiLocked ? '#aaa' : '#007AFF';
+    if (lockBtn) {
+      lockBtn.textContent = aiLocked ? 'lock' : 'lock_open';
+      lockBtn.title = aiLocked ? '解锁编辑 API Key' : '锁定 API Key';
+      lockBtn.style.color = aiLocked ? '#aaa' : '#007AFF';
+    }
   }
 
-  lockBtn.addEventListener('click', function () {
-    aiLocked = !aiLocked;
-    applyAiLock();
-  });
+  if (lockBtn) {
+    lockBtn.addEventListener('click', function () {
+      aiLocked = !aiLocked;
+      applyAiLock();
+    });
+  }
 
-  applyAiLock(); // 初始锁定
+  applyAiLock(); // 初始解锁
   els.agentProvider.addEventListener('change', function () {
     if (window.screenToySettings) {
       window.screenToySettings.apply({ agentProvider: els.agentProvider.value });
+    }
+  });
+
+  els.zhihuModel.addEventListener('change', function () {
+    if (window.screenToySettings) {
+      window.screenToySettings.apply({ agentModel: els.zhihuModel.value });
     }
   });
 

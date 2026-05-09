@@ -1,0 +1,207 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "知乎数据开放平台" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]:
+          - generic [ref=e9]: 知
+        - generic [ref=e10]: 知乎数据开放平台
+      - navigation [ref=e11]:
+        - button "搜索产品" [ref=e12] [cursor=pointer]
+        - button "直答 Agent" [ref=e13] [cursor=pointer]
+        - button "知乎热榜" [ref=e14] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - button "文档中心" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - generic [ref=e20]: 文档中心
+          - button "联系我们" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+            - generic [ref=e26]: 联系我们
+        - button "登录" [ref=e27] [cursor=pointer]
+        - button "注册" [ref=e28] [cursor=pointer]
+  - generic [ref=e30]:
+    - paragraph [ref=e31]: DOCUMENTATION
+    - heading "文档中心" [level=1] [ref=e32]
+    - paragraph [ref=e33]: 接口说明、鉴权方式、示例代码与接入指南。
+  - generic [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]: Docs
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - button "开始使用" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 开始使用
+            - img [ref=e47]
+          - button "鉴权" [ref=e52] [cursor=pointer]
+        - generic [ref=e53]:
+          - button "知乎搜索" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: 知乎搜索
+            - img [ref=e56]
+          - generic [ref=e60]:
+            - button "知乎搜索 API" [ref=e61] [cursor=pointer]
+            - button "知乎搜索 Skill" [ref=e62] [cursor=pointer]
+            - button "知乎搜索 MCP" [ref=e63] [cursor=pointer]
+        - generic [ref=e64]:
+          - button "全网搜索" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]: 全网搜索
+            - img [ref=e67]
+          - generic [ref=e71]:
+            - button "全网搜索 API" [ref=e72] [cursor=pointer]
+            - button "全网搜索 Skill" [ref=e73] [cursor=pointer]
+            - button "全网搜索 MCP" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - button "直答" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: 直答
+            - img [ref=e78]
+          - generic [ref=e82]:
+            - button "直答 API" [ref=e83] [cursor=pointer]
+            - button "直答 Skill" [ref=e84] [cursor=pointer]
+            - button "直答 MCP" [ref=e85] [cursor=pointer]
+        - generic [ref=e86]:
+          - button "热榜" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 热榜
+            - img [ref=e89]
+          - generic [ref=e93]:
+            - button "知乎热榜 API" [ref=e94] [cursor=pointer]
+            - button "知乎热榜 Skill" [ref=e95] [cursor=pointer]
+            - button "知乎热榜 MCP" [active] [ref=e96] [cursor=pointer]
+    - generic [ref=e100]:
+      - heading "热榜 MCP" [level=1] [ref=e824]
+      - heading "接口说明" [level=2] [ref=e825]
+      - paragraph [ref=e103]: 该服务通过 MCP over SSE 提供知乎热榜能力，适合接入支持 MCP 的 Agent、助手或工作流系统。
+      - paragraph [ref=e105]: 当前服务仅提供工具能力，不提供资源（resources）与提示词（prompts）能力。
+      - heading "接口信息" [level=2] [ref=e826]
+      - table [ref=e121]:
+        - rowgroup [ref=e122]:
+          - row "说明 值" [ref=e827]:
+            - columnheader "说明" [ref=e828]
+            - columnheader "值" [ref=e829]
+        - rowgroup [ref=e127]:
+          - row "SSE URL https://developer.zhihu.com/api/mcp/hot_list/v1/sse" [ref=e830]:
+            - cell "SSE URL" [ref=e831]
+            - cell "https://developer.zhihu.com/api/mcp/hot_list/v1/sse" [ref=e832]:
+              - code [ref=e833]: https://developer.zhihu.com/api/mcp/hot_list/v1/sse
+          - row "Message URL https://developer.zhihu.com/api/mcp/hot_list/v1/message" [ref=e834]:
+            - cell "Message URL" [ref=e835]
+            - cell "https://developer.zhihu.com/api/mcp/hot_list/v1/message" [ref=e836]:
+              - code [ref=e837]: https://developer.zhihu.com/api/mcp/hot_list/v1/message
+          - row "传输方式 MCP over SSE" [ref=e838]:
+            - cell "传输方式" [ref=e839]
+            - cell "MCP over SSE" [ref=e840]:
+              - code [ref=e841]: MCP over SSE
+          - row "工具名 hot_list" [ref=e842]:
+            - cell "工具名" [ref=e843]
+            - cell "hot_list" [ref=e844]:
+              - code [ref=e845]: hot_list
+      - paragraph [ref=e110]: 说明：
+      - list [ref=e113]:
+        - listitem [ref=e114]:
+          - text: 客户端先连接
+          - code [ref=e149]: sse
+          - text: 端点。
+        - listitem [ref=e846]:
+          - text: 服务端会通过
+          - code [ref=e847]: endpoint
+          - text: 事件返回实际可用的
+          - code [ref=e848]: message
+          - text: 地址，地址中会带
+          - code [ref=e849]: sessionId
+          - text: 。
+        - listitem [ref=e850]:
+          - text: 后续
+          - code [ref=e851]: initialize
+          - text: 、
+          - code [ref=e852]: tools/list
+          - text: 、
+          - code [ref=e853]: tools/call
+          - text: 请求均发送到该
+          - code [ref=e854]: message
+          - text: 地址。
+      - heading "鉴权" [level=2] [ref=e855]
+      - paragraph [ref=e112]: 请求头：
+      - list [ref=e170]:
+        - listitem [ref=e171]:
+          - code [ref=e856]: "Authorization: Bearer <your_access_secret>"
+      - paragraph [ref=e211]: 说明：
+      - list [ref=e857]:
+        - listitem [ref=e858]:
+          - text: 建议在
+          - code [ref=e859]: sse
+          - text: 连接和后续
+          - code [ref=e860]: message
+          - text: 请求中均携带同一份鉴权信息。
+      - heading "工具定义" [level=2] [ref=e861]
+      - heading "hot_list" [level=3] [ref=e862]:
+        - code [ref=e863]: hot_list
+      - heading "入参" [level=4] [ref=e864]
+      - table [ref=e181]:
+        - rowgroup [ref=e182]:
+          - row "名称 类型 必填 说明" [ref=e865]:
+            - columnheader "名称" [ref=e184]
+            - columnheader "类型" [ref=e185]
+            - columnheader "必填" [ref=e866]
+            - columnheader "说明" [ref=e867]
+        - rowgroup [ref=e188]:
+          - row "limit Number 否 返回条数，取值范围 1-30，默认 30" [ref=e868]:
+            - cell "limit" [ref=e869]:
+              - code [ref=e378]: limit
+            - cell "Number" [ref=e870]
+            - cell "否" [ref=e871]
+            - cell "返回条数，取值范围 1-30，默认 30" [ref=e872]:
+              - text: 返回条数，取值范围 1-30，默认
+              - code [ref=e873]: "30"
+      - heading "返回" [level=4] [ref=e874]
+      - paragraph [ref=e240]:
+        - text: 工具调用结果为
+        - code [ref=e875]: text
+        - text: 类型内容，正文为面向大模型消费的结构化文本。
+      - paragraph [ref=e248]: 返回主体示例：
+      - code [ref=e146]: <hot_list limit="30" total="3"> <item rank="1"> <title>如何看待当前 AI Agent 的发展趋势？</title> <url>https://www.zhihu.com/question/123456789</url> <thumbnail_url>https://pic1.zhimg.com/v2-d4b0f8158e064dbcc71eb6ce970230a9.jpg</thumbnail_url> <summary>这是该问题的内容摘要</summary> </item> <item rank="2"> <title>有哪些值得关注的技术热点？</title> <url>https://zhuanlan.zhihu.com/p/987654321</url> <thumbnail_url>https://pic1.zhimg.com/v2-abcdef1234567890abcdef1234567890.jpg</thumbnail_url> <summary>这是该文章的内容摘要</summary> </item> <item rank="3"> <title>为什么这条话题会进入热榜？</title> <url>https://www.zhihu.com/question/111111111</url> <thumbnail_url></thumbnail_url> <summary></summary> </item> </hot_list>
+      - paragraph [ref=e876]: 说明：
+      - list [ref=e877]:
+        - listitem [ref=e878]:
+          - code [ref=e879]: thumbnail_url
+          - text: 和
+          - code [ref=e880]: summary
+          - text: 始终返回，无数据时为空（如 rank="3" 示例）。
+        - listitem [ref=e881]:
+          - text: 返回值外层是 MCP
+          - code [ref=e882]: text
+          - text: 类型，文本内容为 XML。
+        - listitem [ref=e883]: 建议将整段 XML 原样交给模型消费，不建议自行裁剪字段。
+      - heading "接入流程" [level=2] [ref=e884]
+      - heading "1. 建立 SSE 连接" [level=3] [ref=e885]
+      - code [ref=e239]: "curl -N 'https://developer.zhihu.com/api/mcp/hot_list/v1/sse' \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Accept: text/event-stream'"
+      - paragraph [ref=e886]:
+        - text: 服务端会先返回一条
+        - code [ref=e887]: endpoint
+        - text: 事件，例如：
+      - code [ref=e890]: "event: endpoint data: /api/mcp/hot_list/v1/message?sessionId=xxx"
+      - heading "2. 初始化 MCP 会话" [level=3] [ref=e891]
+      - paragraph [ref=e892]:
+        - text: 将上一步拿到的
+        - code [ref=e893]: message
+        - text: 地址记为
+        - code [ref=e894]: MESSAGE_URL
+        - text: 。
+      - code [ref=e897]: "curl -X POST \"$MESSAGE_URL\" \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": { \"protocolVersion\": \"2024-11-05\", \"clientInfo\": { \"name\": \"demo-client\", \"version\": \"1.0.0\" }, \"capabilities\": {} } }'"
+      - paragraph [ref=e898]: 说明：
+      - list [ref=e899]:
+        - listitem [ref=e900]:
+          - code [ref=e901]: message
+          - text: 端点通常会先返回 HTTP
+          - code [ref=e902]: 202 Accepted
+          - text: 。
+        - listitem [ref=e903]: 实际 JSON-RPC 响应会通过已建立的 SSE 通道异步返回。
+      - heading "3. 获取工具列表" [level=3] [ref=e904]
+      - code [ref=e907]: "curl -X POST \"$MESSAGE_URL\" \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\" }'"
+      - heading "4. 调用热榜工具" [level=3] [ref=e908]
+      - code [ref=e911]: "curl -X POST \"$MESSAGE_URL\" \\ -H 'Authorization: Bearer <your_access_secret>' \\ -H 'Content-Type: application/json' \\ -d '{ \"jsonrpc\": \"2.0\", \"id\": 3, \"method\": \"tools/call\", \"params\": { \"name\": \"hot_list\", \"arguments\": { \"limit\": 10 } } }'"
+      - paragraph [ref=e912]: SSE 通道中会收到对应响应，例如：
+      - code [ref=e915]: "event: message data: {\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"<hot_list limit=\\\"10\\\" total=\\\"10\\\">...\"}]}}"
+      - heading "注意事项" [level=2] [ref=e916]
+      - list [ref=e917]:
+        - listitem [ref=e918]: 该服务采用标准 MCP 工具调用模式，推荐直接使用现成 MCP Client 接入。
+        - listitem [ref=e919]:
+          - code [ref=e920]: tools/call
+          - text: 的结果通过已建立的 SSE 通道返回，而不是直接同步返回在 POST 响应体中。
+        - listitem [ref=e921]: 热榜结果偏实时性，列表顺序和内容会随时间变化。

@@ -129,6 +129,23 @@
       // Plain text: escape and use textContent
       div.textContent = text;
     }
+    // Add copy button for bot messages
+    if (type === 'bot') {
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">content_copy</span>';
+      copyBtn.title = '复制';
+      copyBtn.addEventListener('click', function () {
+        navigator.clipboard.writeText(text).then(function () {
+          copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check</span>';
+          setTimeout(function () {
+            copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">content_copy</span>';
+          }, 1500);
+        });
+      });
+      div.style.position = 'relative';
+      div.appendChild(copyBtn);
+    }
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
   }
@@ -195,7 +212,7 @@
       item.className = 'conv-menu-item' + (c.id === currentConvId ? ' active' : '');
       var title = document.createElement('span');
       title.className = 'conv-title';
-      title.textContent = c.title;
+      title.textContent = (c.hasStyleChanges ? '🔄 ' : '') + c.title;
       title.addEventListener('click', function () {
         loadConv(c.id);
         closeConvMenu();
@@ -266,8 +283,33 @@
   if (window.screenToyDialog && window.screenToyDialog.onConversationId) {
     window.screenToyDialog.onConversationId(function (id) {
       currentConvId = id;
+      // 更新 trigger 文字
       var item = conversationList.find(function (c) { return c.id === id; });
-      convTrigger.textContent = item ? item.title : '新会话';
+      convTrigger.textContent = item ? item.title : '会话';
+      // 刷新会话列表
+      loadConversationList();
+    });
+  }
+
+  // 监听会话列表刷新
+  if (window.screenToyDialog && window.screenToyDialog.onRefreshConversationList) {
+    window.screenToyDialog.onRefreshConversationList(function () {
+      loadConversationList();
+    });
+  }
+
+  // 监听风格变更
+  if (window.screenToyDialog && window.screenToyDialog.onStyleChanged) {
+    window.screenToyDialog.onStyleChanged(function (style) {
+      var mbtiType = (style.mbtiEI || 'E') + (style.mbtiSN || 'N') + (style.mbtiTF || 'F') + (style.mbtiJP || 'J');
+      var typeNames = {
+        'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
+        'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',
+        'ISTJ': '物流师', 'ISFJ': '守卫者', 'ESTJ': '总经理', 'ESFJ': '执政官',
+        'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
+      };
+      var typeName = typeNames[mbtiType] ? ' ' + typeNames[mbtiType] : '';
+      addMsg('[风格变更] 回答风格已切换：' + mbtiType + typeName, 'system', false);
     });
   }
 

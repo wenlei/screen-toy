@@ -1,0 +1,205 @@
+- generic [ref=e1]:
+  - link "欢迎进入 知乎 - 知乎,盲人用户使用操作智能引导，请按快捷键Ctrl+Alt+R；阅读详细操作说明请按快捷键Ctrl+Alt+问号键。":
+    - /url: javascript:void(0)
+    - img [ref=e2] [cursor=pointer]
+  - generic [ref=e4]:
+    - main [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - button "收起侧边栏" [ref=e9] [cursor=pointer]:
+            - img [ref=e10]
+          - generic [ref=e12]:
+            - generic [ref=e13]: 接口目录
+            - button "快速接入" [ref=e14] [cursor=pointer]
+            - button "获取圈子详情" [ref=e15] [cursor=pointer]
+            - button "发布想法" [ref=e16] [cursor=pointer]
+            - button "获取评论列表" [active] [ref=e17] [cursor=pointer]
+            - button "创建评论" [ref=e18] [cursor=pointer]
+            - button "删除评论" [ref=e19] [cursor=pointer]
+            - button "内容/评论点赞" [ref=e20] [cursor=pointer]
+        - generic [ref=e560]:
+          - heading "获取评论列表" [level=1] [ref=e561]
+          - heading "接口说明" [level=2] [ref=e562]
+          - paragraph [ref=e563]: 获取想法的评论列表或评论的回复列表。
+          - paragraph [ref=e564]:
+            - text: 当前支持的圈子ID：
+            - code [ref=e565]: "2001009660925334090"
+            - text: 圈子链接：https://www.zhihu.com/ring/host/2001009660925334090
+          - heading "接口信息" [level=2] [ref=e566]
+          - table [ref=e567]:
+            - rowgroup [ref=e568]:
+              - row "说明 值" [ref=e569]:
+                - columnheader "说明" [ref=e570]
+                - columnheader "值" [ref=e571]
+            - rowgroup [ref=e572]:
+              - row "HTTP URL https://openapi.zhihu.com/openapi/comment/list" [ref=e573]:
+                - cell "HTTP URL" [ref=e574]
+                - cell "https://openapi.zhihu.com/openapi/comment/list" [ref=e575]
+              - row "HTTP Method GET" [ref=e576]:
+                - cell "HTTP Method" [ref=e577]
+                - cell "GET" [ref=e578]
+          - heading "鉴权传参" [level=2] [ref=e579]
+          - list [ref=e580]:
+            - listitem [ref=e581]:
+              - text: •
+              - code [ref=e582]: app_key
+              - text: ": 传入用户 token"
+            - listitem [ref=e583]:
+              - text: •
+              - code [ref=e584]: app_secret
+              - text: ": 应用密钥（请妥善保管，不要泄露），传入分配的 app_secret"
+          - heading "请求参数" [level=2] [ref=e585]
+          - heading "Header" [level=3] [ref=e586]
+          - table [ref=e587]:
+            - rowgroup [ref=e588]:
+              - row "请求头 类型 必填 说明" [ref=e589]:
+                - columnheader "请求头" [ref=e590]
+                - columnheader "类型" [ref=e591]
+                - columnheader "必填" [ref=e592]
+                - columnheader "说明" [ref=e593]
+            - rowgroup [ref=e594]:
+              - row "X-App-Key string 是 应用标识" [ref=e595]:
+                - cell "X-App-Key" [ref=e596]
+                - cell "string" [ref=e597]
+                - cell "是" [ref=e598]
+                - cell "应用标识" [ref=e599]
+              - row "X-Timestamp string 是 当前时间戳（秒级）" [ref=e600]:
+                - cell "X-Timestamp" [ref=e601]
+                - cell "string" [ref=e602]
+                - cell "是" [ref=e603]
+                - cell "当前时间戳（秒级）" [ref=e604]
+              - row "X-Log-Id string 是 请求日志 ID" [ref=e605]:
+                - cell "X-Log-Id" [ref=e606]
+                - cell "string" [ref=e607]
+                - cell "是" [ref=e608]
+                - cell "请求日志 ID" [ref=e609]
+              - row "X-Sign string 是 签名" [ref=e610]:
+                - cell "X-Sign" [ref=e611]
+                - cell "string" [ref=e612]
+                - cell "是" [ref=e613]
+                - cell "签名" [ref=e614]
+              - row "X-Extra-Info string 是 额外信息，可为空" [ref=e615]:
+                - cell "X-Extra-Info" [ref=e616]
+                - cell "string" [ref=e617]
+                - cell "是" [ref=e618]
+                - cell "额外信息，可为空" [ref=e619]
+          - heading "Query Parameters" [level=3] [ref=e620]
+          - table [ref=e621]:
+            - rowgroup [ref=e622]:
+              - row "参数名 类型 必填 说明" [ref=e623]:
+                - columnheader "参数名" [ref=e624]
+                - columnheader "类型" [ref=e625]
+                - columnheader "必填" [ref=e626]
+                - columnheader "说明" [ref=e627]
+            - rowgroup [ref=e628]:
+              - row "content_token string 是 想法id / 评论 id" [ref=e629]:
+                - cell "content_token" [ref=e630]
+                - cell "string" [ref=e631]
+                - cell "是" [ref=e632]
+                - cell "想法id / 评论 id" [ref=e633]
+              - row "content_type string 是 想法：pin 评论：comment" [ref=e634]:
+                - cell "content_type" [ref=e635]
+                - cell "string" [ref=e636]
+                - cell "是" [ref=e637]
+                - cell "想法：pin 评论：comment" [ref=e638]:
+                  - text: 想法：pin
+                  - text: 评论：comment
+              - row "page_num int 否 分页偏移量，默认：0" [ref=e639]:
+                - cell "page_num" [ref=e640]
+                - cell "int" [ref=e641]
+                - cell "否" [ref=e642]
+                - cell "分页偏移量，默认：0" [ref=e643]
+              - row "page_size int 否 每页条数，默认：10，最多：50 offset + limit 总数量最多 1000 条" [ref=e644]:
+                - cell "page_size" [ref=e645]
+                - cell "int" [ref=e646]
+                - cell "否" [ref=e647]
+                - cell "每页条数，默认：10，最多：50 offset + limit 总数量最多 1000 条" [ref=e648]:
+                  - text: 每页条数，默认：10，最多：50
+                  - text: offset + limit 总数量最多 1000 条
+          - heading "响应数据" [level=2] [ref=e649]
+          - heading "成功响应示例" [level=3] [ref=e650]
+          - code [ref=e652]: "{ \"status\": 0, \"msg\": \"success\", \"data\": { \"comments\": [ { \"comment_id\": \"11387042978\", \"content\": \"我也试用了，感觉跟gemini的deep research差不多...\", \"author_name\": \"javaichiban\", \"author_token\": \"rockswang\", \"like_count\": 8, \"reply_count\": 0, \"publish_time\": 1767772323 } ], \"has_more\": true } }"
+          - heading "失败响应示例" [level=3] [ref=e653]
+          - code [ref=e655]: "{ \"status\": 1, \"msg\": \"content_token is required\", \"data\": null }"
+          - heading "响应字段说明" [level=3] [ref=e656]
+          - heading "顶层字段" [level=4] [ref=e657]
+          - table [ref=e658]:
+            - rowgroup [ref=e659]:
+              - row "字段名 类型 说明" [ref=e660]:
+                - columnheader "字段名" [ref=e661]
+                - columnheader "类型" [ref=e662]
+                - columnheader "说明" [ref=e663]
+            - rowgroup [ref=e664]:
+              - row "status int 状态码，0表示成功，1表示失败" [ref=e665]:
+                - cell "status" [ref=e666]
+                - cell "int" [ref=e667]
+                - cell "状态码，0表示成功，1表示失败" [ref=e668]
+              - row "msg string 响应消息" [ref=e669]:
+                - cell "msg" [ref=e670]
+                - cell "string" [ref=e671]
+                - cell "响应消息" [ref=e672]
+              - row "data object 响应数据" [ref=e673]:
+                - cell "data" [ref=e674]
+                - cell "object" [ref=e675]
+                - cell "响应数据" [ref=e676]
+          - heading "data 字段" [level=4] [ref=e677]
+          - table [ref=e678]:
+            - rowgroup [ref=e679]:
+              - row "字段名 类型 说明" [ref=e680]:
+                - columnheader "字段名" [ref=e681]
+                - columnheader "类型" [ref=e682]
+                - columnheader "说明" [ref=e683]
+            - rowgroup [ref=e684]:
+              - row "comments array 评论列表" [ref=e685]:
+                - cell "comments" [ref=e686]
+                - cell "array" [ref=e687]
+                - cell "评论列表" [ref=e688]
+              - row "has_more bool 是否还有更多数据" [ref=e689]:
+                - cell "has_more" [ref=e690]
+                - cell "bool" [ref=e691]
+                - cell "是否还有更多数据" [ref=e692]
+          - heading "comments 数组中的对象字段" [level=4] [ref=e693]
+          - table [ref=e694]:
+            - rowgroup [ref=e695]:
+              - row "字段名 类型 说明" [ref=e696]:
+                - columnheader "字段名" [ref=e697]
+                - columnheader "类型" [ref=e698]
+                - columnheader "说明" [ref=e699]
+            - rowgroup [ref=e700]:
+              - row "comment_id string 评论ID" [ref=e701]:
+                - cell "comment_id" [ref=e702]
+                - cell "string" [ref=e703]
+                - cell "评论ID" [ref=e704]
+              - row "content string 评论内容（HTML格式）" [ref=e705]:
+                - cell "content" [ref=e706]
+                - cell "string" [ref=e707]
+                - cell "评论内容（HTML格式）" [ref=e708]
+              - row "author_name string 作者名称" [ref=e709]:
+                - cell "author_name" [ref=e710]
+                - cell "string" [ref=e711]
+                - cell "作者名称" [ref=e712]
+              - row "author_token string 作者token" [ref=e713]:
+                - cell "author_token" [ref=e714]
+                - cell "string" [ref=e715]
+                - cell "作者token" [ref=e716]
+              - row "like_count int 点赞数" [ref=e717]:
+                - cell "like_count" [ref=e718]
+                - cell "int" [ref=e719]
+                - cell "点赞数" [ref=e720]
+              - row "reply_count int 回复数" [ref=e721]:
+                - cell "reply_count" [ref=e722]
+                - cell "int" [ref=e723]
+                - cell "回复数" [ref=e724]
+              - row "reply_to string 回复的评论ID（一级评论无此字段）" [ref=e725]:
+                - cell "reply_to" [ref=e726]
+                - cell "string" [ref=e727]
+                - cell "回复的评论ID（一级评论无此字段）" [ref=e728]
+              - row "publish_time int 发布时间戳" [ref=e729]:
+                - cell "publish_time" [ref=e730]
+                - cell "int" [ref=e731]
+                - cell "发布时间戳" [ref=e732]
+          - heading "curl 示例" [level=2] [ref=e733]
+          - code [ref=e735]: "#!/bin/bash APP_KEY=\"your_app_key\" # 用户token APP_SECRET=\"your_app_secret\" # 知乎提供 DOMAIN=\"https://openapi.zhihu.com\" # 检查参数 if [ $# -lt 2 ]; then echo \"用法:\" echo \" 获取想法的一级评论: $0 pin <pin_id> [page_num] [page_size]\" echo \" 获取评论的二级评论: $0 comment <root_id> [page_num] [page_size]\" echo \"\" echo \"参数说明:\" echo \" content_type: pin 或 comment\" echo \" content_token: 想法ID（当 content_type=pin）或一级评论ID（当 content_type=comment）\" echo \" page_num: 页码，默认 1\" echo \" page_size: 每页条数，默认 10，最多 50\" echo \"\" echo \"示例:\" echo \" $0 pin 1992012205256892542\" echo \" $0 pin 1992012205256892542 2 20\" echo \" $0 comment 11386670165\" echo \" $0 comment 11386670165 1 15\" exit 1 fi CONTENT_TYPE=\"$1\" CONTENT_TOKEN=\"$2\" PAGE_NUM=${3:-1} PAGE_SIZE=${4:-10} TIMESTAMP=$(date +%s) LOG_ID=\"test-${TIMESTAMP}\" # 生成签名 SIGN_STR=\"app_key:${APP_KEY}|ts:${TIMESTAMP}|logid:${LOG_ID}|extra_info:\" SIGN=$(echo -n \"$SIGN_STR\" | openssl dgst -sha256 -hmac \"$APP_SECRET\" -binary | base64) # 构建查询参数 QUERY_PARAMS=\"content_token=${CONTENT_TOKEN}&content_type=${CONTENT_TYPE}&page_num=${PAGE_NUM}&page_size=${PAGE_SIZE}\" # 发送 GET 请求 curl -s \"${DOMAIN}/openapi/comment/list?${QUERY_PARAMS}\" \\ -H \"X-App-Key: ${APP_KEY}\" \\ -H \"X-Timestamp: ${TIMESTAMP}\" \\ -H \"X-Sign: ${SIGN}\" \\ -H \"X-Log-Id: ${LOG_ID}\" \\ -H \"X-Extra-Info: \""
+    - complementary:
+      - button "回到顶部" [ref=e174] [cursor=pointer]:
+        - img [ref=e175]

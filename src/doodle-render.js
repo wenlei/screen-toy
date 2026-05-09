@@ -387,4 +387,6 @@
   window.ThawSprite           = makeSprite('thaw_sheet.png',         6, 256, 256, 24);
   window.TwistStruggleSprite  = makeSprite('twist_struggle_sheet.png', 6, 256, 256, 24);
   window.BigNoseSprite    = makeSprite('bignose_sheet.png', 6, 256, 256, 24);
+  window.Flower1Sprite    = makeSprite('flower1_sheet.png', 6, 256, 256, 24);
+  window.Flower2Sprite    = makeSprite('flower2_sheet.png', 6, 256, 256, 24);
 })();
