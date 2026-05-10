@@ -203,6 +203,17 @@ export function saveOrUpdateConversation(record: ConversationRecord): void {
         enableDirectAnswer: record.enableDirectAnswer,
       };
     }
+    // 插入初始风格系统消息到第一条
+    if (!record.messages) record.messages = [];
+    var mbtiType = (record.mbtiEI || 'E') + (record.mbtiSN || 'N') + (record.mbtiTF || 'F') + (record.mbtiJP || 'J');
+    var typeNames: { [key: string]: string } = {
+      'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
+      'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',
+      'ISTJ': '物流师', 'ISFJ': '守卫者', 'ESTJ': '总经理', 'ESFJ': '执政官',
+      'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
+    };
+    var typeName = typeNames[mbtiType] ? ' ' + typeNames[mbtiType] : '';
+    record.messages.unshift({ role: 'system', content: '[会话风格] ' + mbtiType + typeName });
     kb.conversations.push(record);
     if (kb.conversations.length > 50) {
       kb.conversations = kb.conversations.slice(-50);
@@ -231,5 +242,17 @@ export function recordStyleChange(id: string, newStyle: SessionMeta): void {
   };
   if (!conv.styleChanges) conv.styleChanges = [];
   conv.styleChanges.push(change);
+  // 同时写入一条系统消息，使其在对话历史中可见
+  var mbtiType = (newStyle.mbtiEI || 'E') + (newStyle.mbtiSN || 'N') + (newStyle.mbtiTF || 'F') + (newStyle.mbtiJP || 'J');
+  var MODEL_NAMES: { [key: string]: string } = {
+    'zhida-fast-1p5': '快速回答 (zhida-fast-1p5)',
+    'zhida-thinking-1p5': '深度思考 (zhida-thinking-1p5)',
+    'zhida-agent': '智能思考 (zhida-agent)',
+  };
+  var modelName = newStyle.agentModel ? (MODEL_NAMES[newStyle.agentModel] || newStyle.agentModel) : '';
+  var content = '[风格变更] ' + mbtiType;
+  if (modelName) content += ' · ' + modelName;
+  if (!conv.messages) conv.messages = [];
+  conv.messages.push({ role: 'system', content: content });
   saveKnowledge(kb);
 }

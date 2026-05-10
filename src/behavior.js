@@ -173,12 +173,12 @@
     var newY = this.screenY + dy;
     var bounced = false;
 
-    // Screen boundary check
+    // Screen boundary check — use workArea origin (sb.x/y) if provided
     var margin = 40;
-    var minX = margin;
-    var maxX = screenBounds.width - margin;
-    var minY = margin;
-    var maxY = screenBounds.height - margin;
+    var minX = (screenBounds.x || 0) + margin;
+    var maxX = (screenBounds.x || 0) + screenBounds.width  - margin;
+    var minY = (screenBounds.y || 0) + margin;
+    var maxY = (screenBounds.y || 0) + screenBounds.height - margin;
 
     if (newX < minX) { newX = minX; bounced = true; }
     if (newX > maxX) { newX = maxX; bounced = true; }
@@ -350,10 +350,13 @@
   Behavior.prototype._isInCorner = function () {
     // WIN_W=152 WIN_H=132, drag clamps to [76, screenW-76] x [66, screenH-66]
     // Corner = within 60px of minimum/maximum clamped position
-    var screenW = typeof screen !== 'undefined' ? screen.width : 1440;
-    var screenH = typeof screen !== 'undefined' ? screen.height : 900;
-    var nearH = this.screenX < 76 + 60 || this.screenX > screenW - 76 - 60;
-    var nearV = this.screenY < 66 + 60 || this.screenY > screenH - 66 - 60;
+    // Use availLeft/Top/Width/Height so Dock and menu bar are excluded correctly.
+    var aL = typeof screen !== 'undefined' ? (screen.availLeft  || 0) : 0;
+    var aT = typeof screen !== 'undefined' ? (screen.availTop   || 0) : 0;
+    var aW = typeof screen !== 'undefined' ? (screen.availWidth  || 1440) : 1440;
+    var aH = typeof screen !== 'undefined' ? (screen.availHeight || 900)  : 900;
+    var nearH = this.screenX < aL + 76 + 60 || this.screenX > aL + aW - 76 - 60;
+    var nearV = this.screenY < aT + 66 + 60 || this.screenY > aT + aH - 66 - 60;
     return nearH && nearV;
   };
 
@@ -531,13 +534,15 @@
     var margin = 80;
     var dir;
 
-    var screenW = typeof window !== 'undefined' ? screen.width : 1440;
-    var screenH = typeof window !== 'undefined' ? screen.height : 900;
+    var aL = typeof screen !== 'undefined' ? (screen.availLeft  || 0) : 0;
+    var aT = typeof screen !== 'undefined' ? (screen.availTop   || 0) : 0;
+    var aW = typeof screen !== 'undefined' ? (screen.availWidth  || 1440) : 1440;
+    var aH = typeof screen !== 'undefined' ? (screen.availHeight || 900)  : 900;
 
-    var dL = this.screenX;
-    var dR = screenW - this.screenX;
-    var dT = this.screenY;
-    var dB = screenH - this.screenY;
+    var dL = this.screenX - aL;
+    var dR = aL + aW - this.screenX;
+    var dT = this.screenY - aT;
+    var dB = aT + aH - this.screenY;
 
     // Bias away from nearest edge
     if (dL < margin) dir = 0;                // go right (E)
@@ -567,8 +572,10 @@
     'wakeup': function (b) { b.wakeUp(); },
     'wander': function (b) {
       var sb = {
-        width:  typeof screen !== 'undefined' ? screen.width  : 1440,
-        height: typeof screen !== 'undefined' ? screen.height : 900,
+        x:      typeof screen !== 'undefined' ? (screen.availLeft   || 0)    : 0,
+        y:      typeof screen !== 'undefined' ? (screen.availTop    || 0)    : 0,
+        width:  typeof screen !== 'undefined' ? (screen.availWidth  || 1440) : 1440,
+        height: typeof screen !== 'undefined' ? (screen.availHeight || 900)  : 900,
       };
       b._startWander(sb);
     },

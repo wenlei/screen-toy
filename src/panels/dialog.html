@@ -43,9 +43,12 @@
   .msg.bot em { font-style:italic; }
   .msg.bot a { color:#007AFF; text-decoration:underline; word-break:break-all; }
   .msg.bot a:hover { opacity:0.8; }
-  .copy-btn { position:absolute; bottom:4px; right:4px; background:none; border:1px solid #E5E5EA; border-radius:4px; padding:2px 4px; cursor:pointer; opacity:0; transition:opacity 0.2s; font-size:14px; color:#8E8E93; }
-  .msg.bot:hover .copy-btn { opacity:1; }
-  .copy-btn:hover { background:#F2F2F7; color:#333; }
+
+  .msg-footer { display:flex; align-items:center; gap:6px; margin-top:2px; font-size:11px; color:#AEAEB2; }
+  .msg-footer.bot { justify-content:flex-start; padding-left:12px; }
+  .msg-footer.user { justify-content:flex-end; padding-right:12px; }
+  .msg-footer .copy-btn { background:none; border:none; cursor:pointer; color:#8E8E93; font-size:16px; padding:0; line-height:1; display:inline-flex; align-items:center; }
+  .msg-footer .copy-btn:hover { color:#007AFF; }
 
   .input-row { display:flex; padding:10px 12px; background:#FFFFFF; border-top:1px solid #E5E5EA; gap:8px; }
   .input-row input { flex:1; background:#F2F2F7; border:1px solid #E5E5EA; color:#1C1C1E; padding:8px 12px; border-radius:8px; font-size:13px; outline:none; }

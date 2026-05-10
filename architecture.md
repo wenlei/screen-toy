@@ -81,6 +81,8 @@ Communication between main and renderer processes via typed IPC channels:
 | `mouse-pos` | main → renderer | Mouse position for pet interaction |
 | `event-animations-config` | main → renderer | Date-matched event animation override (enter) |
 | `quit-animations-config` | main → renderer | Date-matched event animation override (quit) |
+| `save-hotlist-to-history` | dialog → main | Save hotlist result to session |
+| `dialog-current-style` | main → dialog | Send current MBTI style on dialog open |
 
 ---
 

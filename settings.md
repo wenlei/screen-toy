@@ -31,7 +31,7 @@
 │──────────────────────────────────────│
 │  AI Agent                           │
 │  ├─ Provider: 知乎直答               │
-│  ├─ Model: [快速/深度/智能体 ▼]      │
+│  ├─ Model: [快速/深度/智能思考 ▼]      │
 │  └─ API Key: [•••••••] 🔒 🔓        │
 │──────────────────────────────────────│
 │  回答风格 (MBTI)                     │
@@ -95,4 +95,19 @@ saveSettings() → screen-toy-settings.json
 
 - [AI Agent](agent.md) — AgentConfig
 - [Session System](session.md) — Session 元信息
-- [Dialog System](dialog.md) — 直答开关联动
+- [Dialog System](dialog.md) — 直答开关联动、风格实时更新
+
+## 风格同步
+
+Settings 中更改 MBTI 后：
+1. `apply-settings` IPC 更新 `currentSettings`
+2. `style-changed` IPC 实时通知 dialog 窗口（无活跃会话时也发送）
+3. dialog 显示 `[当前风格] 已更新为 INTJ 建筑师`
+4. 下次打开 dialog 时通过 `dialog-current-style` 显示当前风格
+
+## 已知问题
+
+| # | 问题 | 状态 |
+|----|------|------|
+| 1 | 设置面板重载后 MBTI 始终默认 ENFJ | ✅ 已修复 — `ipcRenderer.removeAllListeners` 清理累积监听器 |
+| 2 | API 申请 URL 为旧地址 | ✅ 已修复 — 更新为 `zhihu.com/ring/moltbook` |

@@ -88,7 +88,7 @@ src/                            # 渲染进程 (JavaScript)
 |------|------|
 | zhida-fast-1p5 | 快速回答 (通用) |
 | zhida-thinking-1p5 | 深度思考 (推理强) |
-| zhida-agent | 智能体 (规划强) |
+| zhida-agent | 智能思考 (规划强) |
 
 ### 对话窗口特性
 
@@ -172,3 +172,23 @@ src/                            # 渲染进程 (JavaScript)
 | [dialog.md](dialog.md) | 对话窗口系统 |
 | [settings.md](settings.md) | 设置面板系统 |
 | [knowledge.md](knowledge.md) | 知识库/Session 存储 |
+| [background.md](background.md) | 项目背景、想法和方式 |
+| [log-wrap-up.md](log-wrap-up.md) | 近期变更记录（按模块/需求/改动点分类） |
+
+## 近期变更 (2026-05-10)
+
+详见 [log-wrap-up.md](log-wrap-up.md)，主要变更：
+
+| # | 变更 | 状态 |
+|---|------|------|
+| 1 | 日期驱动事件动画系统 | ✅ |
+| 2 | MBTI 配置持久化修复 | ✅ |
+| 3 | 热榜 Session 关联修复 | ✅ |
+| 4 | 对话窗口 UI 增强（时间戳 + 复制 + 风格显示） | ✅ |
+| 5 | System Prompt 风格注入顺序修复 | ✅ |
+| 6 | 知乎 API 文档抓取（19 个接口） | ✅ |
+| 7 | 应用打包（electron-builder） | ✅ |
+| 8 | 对话框风格信息增强（模型名显示） | ✅ |
+| 9 | 模型变更写入 Session 历史 | ✅ |
+| 10 | 移除重复 Markdown 格式指令 | ✅ |
+| 11 | 移除 system role，风格注入 user 消息 | ✅ |
