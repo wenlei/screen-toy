@@ -240,23 +240,31 @@ ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
     agent = null; // will be recreated on next dialog-send
   }
 
-  // 风格变更：记录到当前 session
-  if (currentConversationId &&
-      (settings.mbtiEI !== undefined || settings.mbtiSN !== undefined ||
-       settings.mbtiTF !== undefined || settings.mbtiJP !== undefined)) {
+  // 风格/模型变更：记录到当前 session（仅在有活跃会话时）
+  var mbtiChanged = (settings.mbtiEI !== undefined || settings.mbtiSN !== undefined ||
+       settings.mbtiTF !== undefined || settings.mbtiJP !== undefined);
+  var modelChanged = settings.agentModel !== undefined;
+  if (currentConversationId && (mbtiChanged || modelChanged)) {
     knowledge.recordStyleChange(currentConversationId, {
       mbtiEI: (currentSettings as any).mbtiEI,
       mbtiSN: (currentSettings as any).mbtiSN,
       mbtiTF: (currentSettings as any).mbtiTF,
       mbtiJP: (currentSettings as any).mbtiJP,
+      agentModel: currentSettings.agentModel,
     });
-    // 通知 dialog 风格变更
+  }
+  // 通知 dialog 风格/模型变更（无论是否有活跃会话）
+  var mbtiChanged = (settings.mbtiEI !== undefined || settings.mbtiSN !== undefined ||
+       settings.mbtiTF !== undefined || settings.mbtiJP !== undefined);
+  var modelChanged = settings.agentModel !== undefined;
+  if (mbtiChanged || modelChanged) {
     if (dialogWin && !dialogWin.isDestroyed()) {
       dialogWin.webContents.send('style-changed', {
         mbtiEI: (currentSettings as any).mbtiEI,
         mbtiSN: (currentSettings as any).mbtiSN,
         mbtiTF: (currentSettings as any).mbtiTF,
         mbtiJP: (currentSettings as any).mbtiJP,
+        agentModel: currentSettings.agentModel,
       });
     }
   }
@@ -372,6 +380,17 @@ function createDialogWindow() {
   });
 
   dialogWin.loadFile(path.join(__dirname, '..', '..', 'src', 'panels', 'dialog.html'));
+  dialogWin.webContents.on('did-finish-load', () => {
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-current-style', {
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+        agentModel: currentSettings.agentModel,
+      });
+    }
+  });
   dialogWin.on('closed', () => {
     dialogWin = null;
   });
@@ -429,6 +448,22 @@ ipcMain.on('dialog-send', (_event, msg: string) => {
     dialogWin.webContents.send('dialog-message', '...');
   }
 
+  // 会话创建（新会话时立刻发送 ID + 初始风格，让 dialog 先显示风格信息）
+  var cid = currentConversationId;
+  if (!cid) {
+    cid = Date.now().toString(36);
+    currentConversationId = cid;
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-conversation-id', {
+        id: cid,
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+      });
+    }
+  }
+
   var useStream = (currentSettings.agentProvider as any) === 'zhihu';
   var sendFn = useStream
     ? agent.sendMessageStream.bind(agent)
@@ -448,15 +483,6 @@ ipcMain.on('dialog-send', (_event, msg: string) => {
       }
 
   // Auto-save conversation to knowledge base
-  var cid = currentConversationId;
-  if (!cid) {
-    cid = Date.now().toString(36);
-    currentConversationId = cid;
-    // Send conversation ID to dialog window so it can track
-    if (dialogWin && !dialogWin.isDestroyed()) {
-      dialogWin.webContents.send('dialog-conversation-id', cid);
-    }
-  }
     try {
       var prov = (currentSettings.agentProvider as any) || 'zhihu';
       // 查找已有记录来合并消息
@@ -521,6 +547,8 @@ ipcMain.handle('conversation-list', async () => {
 ipcMain.handle('conversation-load', async (_event, id: string) => {
   const record = knowledge.getConversationById(id);
   if (!record) return null;
+  // 更新当前 session ID，确保后续消息关联到正确的会话
+  currentConversationId = id;
   // 恢复元信息到 currentSettings
   if (record.mbtiEI) (currentSettings as any).mbtiEI = record.mbtiEI;
   if (record.mbtiSN) (currentSettings as any).mbtiSN = record.mbtiSN;
@@ -574,7 +602,13 @@ ipcMain.on('save-hotlist-to-history', (_event, text: string) => {
   if (!currentConversationId) {
     currentConversationId = Date.now().toString(36);
     if (dialogWin && !dialogWin.isDestroyed()) {
-      dialogWin.webContents.send('dialog-conversation-id', currentConversationId);
+      dialogWin.webContents.send('dialog-conversation-id', {
+        id: currentConversationId,
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+      });
     }
   }
   var existing = knowledge.getConversationById(currentConversationId);

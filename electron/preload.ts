@@ -100,9 +100,6 @@ contextBridge.exposeInMainWorld('screenToySettings', {
   openApiPage: () => {
     ipcRenderer.send('open-api-page');
   },
-  saveHotlistToHistory: (text: string) => {
-    ipcRenderer.send('save-hotlist-to-history', text);
-  },
 });
 
 contextBridge.exposeInMainWorld('screenToyMenu', {
@@ -128,8 +125,9 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
   onChunk: (callback: (chunk: string) => void) => {
     ipcRenderer.on('dialog-chunk', (_event, chunk: string) => callback(chunk));
   },
-  onConversationId: (callback: (id: string) => void) => {
-    ipcRenderer.on('dialog-conversation-id', (_event, id: string) => callback(id));
+  onConversationId: (callback: (data: any) => void) => {
+    ipcRenderer.removeAllListeners('dialog-conversation-id');
+    ipcRenderer.on('dialog-conversation-id', (_event, data) => callback(data));
   },
   send: (msg: string) => {
     ipcRenderer.send('dialog-send', msg);
@@ -143,6 +141,9 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
   getHotList: () => {
     return ipcRenderer.invoke('zhihu-hot-list');
   },
+  saveHotlistToHistory: (text: string) => {
+    ipcRenderer.send('save-hotlist-to-history', text);
+  },
   getConversationList: () => {
     return ipcRenderer.invoke('conversation-list');
   },
@@ -153,10 +154,15 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
     return ipcRenderer.invoke('conversation-delete', id);
   },
   onRefreshConversationList: (callback: () => void) => {
+    ipcRenderer.removeAllListeners('refresh-conversation-list');
     ipcRenderer.on('refresh-conversation-list', () => callback());
   },
   onStyleChanged: (callback: (style: any) => void) => {
     ipcRenderer.on('style-changed', (_event, style) => callback(style));
+  },
+  onCurrentStyle: (callback: (style: any) => void) => {
+    ipcRenderer.removeAllListeners('dialog-current-style');
+    ipcRenderer.on('dialog-current-style', (_event, style) => callback(style));
   },
 });
 

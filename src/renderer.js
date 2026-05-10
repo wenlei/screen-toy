@@ -774,19 +774,21 @@
       }
       // ───────────────────────────────────────────────────────────────────────
 
-      // Screen bounds
+      // Screen bounds — use workArea (avail*) so Dock and menu bar are respected
       var sb = {
-        width: typeof screen !== 'undefined' ? screen.width : 1440,
-        height: typeof screen !== 'undefined' ? screen.height : 900,
+        x:      typeof screen !== 'undefined' ? (screen.availLeft   || 0)    : 0,
+        y:      typeof screen !== 'undefined' ? (screen.availTop    || 0)    : 0,
+        width:  typeof screen !== 'undefined' ? (screen.availWidth  || 1440) : 1440,
+        height: typeof screen !== 'undefined' ? (screen.availHeight || 900)  : 900,
       };
 
       // During drag, update position from mouseScreen
       if (isDragging && mouseScreen) {
         behavior.screenX = mouseScreen.x - dragOffsetX;
         behavior.screenY = mouseScreen.y - dragOffsetY;
-        // Clamp so the window stays fully on-screen (window is canvas.width × canvas.height)
-        behavior.screenX = clamp(behavior.screenX, canvas.width / 2, sb.width - canvas.width / 2);
-        behavior.screenY = clamp(behavior.screenY, canvas.height / 2, sb.height - canvas.height / 2);
+        // Clamp so the window stays fully within the work area (excluding Dock/menu bar)
+        behavior.screenX = clamp(behavior.screenX, sb.x + canvas.width  / 2, sb.x + sb.width  - canvas.width  / 2);
+        behavior.screenY = clamp(behavior.screenY, sb.y + canvas.height / 2, sb.y + sb.height - canvas.height / 2);
       }
 
       // Update behavior (state machine) — frozen during special animations or sun game
@@ -842,8 +844,8 @@
             // Higher score → lower top speed (fox gets heavier; min 30% of max)
             var speedFactor = Math.max(0.3, 1 - sunPoints / 120);
             var foxSpd = (FOX_MIN_SPEED + (FOX_MAX_SPEED - FOX_MIN_SPEED) * t) * speedFactor;
-            var tx = clamp(mouseScreen.x, canvas.width / 2, sb.width - canvas.width / 2);
-            var ty = clamp(mouseScreen.y, canvas.height / 2, sb.height - canvas.height / 2);
+            var tx = clamp(mouseScreen.x, sb.x + canvas.width  / 2, sb.x + sb.width  - canvas.width  / 2);
+            var ty = clamp(mouseScreen.y, sb.y + canvas.height / 2, sb.y + sb.height - canvas.height / 2);
             var mdx = tx - fx, mdy = ty - fy;
             var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
             if (mdist > 1) {

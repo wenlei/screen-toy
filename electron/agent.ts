@@ -361,6 +361,7 @@ function generateMbtiStyle(mbtiType: string, config: AgentConfig): string {
 export class Agent {
   private config: AgentConfig; // Agent 配置信息
   private history: ChatMessage[] = []; // 当前对话的历史记录
+  private stylePrefix: string = ''; // MBTI 风格前缀（用于 Zhihu user 消息注入）
 
   /**
    * 构造函数，初始化配置并注入系统提示词和 MBTI 风格
@@ -368,19 +369,18 @@ export class Agent {
    */
   constructor(config: AgentConfig) {
     this.config = config;
+    // 为 Zhihu 构建风格前缀（注入到第一条 user 消息）
+    if (config.mbtiEI || config.mbtiSN || config.mbtiTF || config.mbtiJP) {
+      var styleLines: string[] = [];
+      if (config.mbtiEI) styleLines.push('- ' + MBTI_STYLE[config.mbtiEI]);
+      if (config.mbtiSN) styleLines.push('- ' + MBTI_STYLE[config.mbtiSN]);
+      if (config.mbtiTF) styleLines.push('- ' + MBTI_STYLE[config.mbtiTF]);
+      if (config.mbtiJP) styleLines.push('- ' + MBTI_STYLE[config.mbtiJP]);
+      this.stylePrefix = '回复风格要求：\n' + styleLines.join('\n') + '\n\n';
+    }
+    // 仍保留 system prompt 作为内部历史记录（不发送给 Zhihu）
     if (config.systemPrompt) {
-      var prompt = config.systemPrompt;
-      // 注入 MBTI 风格到「回答风格」章节
-      if (config.mbtiEI || config.mbtiSN || config.mbtiTF || config.mbtiJP) {
-        var styleLines: string[] = [];
-        if (config.mbtiEI) styleLines.push('- ' + MBTI_STYLE[config.mbtiEI]);
-        if (config.mbtiSN) styleLines.push('- ' + MBTI_STYLE[config.mbtiSN]);
-        if (config.mbtiTF) styleLines.push('- ' + MBTI_STYLE[config.mbtiTF]);
-        if (config.mbtiJP) styleLines.push('- ' + MBTI_STYLE[config.mbtiJP]);
-        var styleContent = styleLines.join('\n');
-        prompt = prompt.replace('## 回答风格', '## 回答风格\n' + styleContent);
-      }
-      this.history.push({ role: 'system', content: prompt });
+      this.history.push({ role: 'system', content: config.systemPrompt });
     }
   }
 
@@ -530,11 +530,13 @@ export class Agent {
         var searchEnd = sysPrompt.indexOf('##', searchStart + 5);
         formatInstructions += '\n' + sysPrompt.slice(searchStart, searchEnd > 0 ? searchEnd : searchStart + 200).trim();
       }
-      // 把格式指令加到第一条用户消息
-      if (sendMessages.length > 0 && sendMessages[0].role === 'user' && formatInstructions) {
+      // 注入风格前缀到第一条用户消息
+      var prefix = (this.stylePrefix || '') + formatInstructions;
+      // 把格式指令和风格前缀加到第一条用户消息
+      if (sendMessages.length > 0 && sendMessages[0].role === 'user' && prefix) {
         sendMessages[0] = {
           role: 'user',
-          content: formatInstructions + '\n\n' + sendMessages[0].content
+          content: prefix + '\n\n' + sendMessages[0].content
         };
       }
     } else {
@@ -697,13 +699,7 @@ export class Agent {
   }
 }
 
-const DEFAULT_SYSTEM_PROMPT = `## 回复格式
-- 使用 Markdown 格式，结构清晰
-- 适当使用标题（##）、列表（- 或 1.）、粗体（**）
-- 分段回答，不要一大段文字
-
-## 回答风格
-根据用户设置的人格风格调整回复方式：
+const DEFAULT_SYSTEM_PROMPT = `## 回答风格
 
 ## 关于搜索结果
 当消息中包含搜索结果时，参考这些信息回答。回复末尾列出引用的来源，每条一行，用 * [标题](url) 格式。

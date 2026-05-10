@@ -121,32 +121,59 @@
     var loading = msgs.querySelector('.msg.loading');
     if (loading) loading.remove();
 
+    // 容器：消息 + 脚注 统一对齐
+    var container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = type === 'user' ? 'flex-end' : 'flex-start';
+
     var div = document.createElement('div');
     div.className = 'msg ' + type;
     if (isMarkdown && type === 'bot') {
       div.innerHTML = md2html(text);
     } else {
-      // Plain text: escape and use textContent
       div.textContent = text;
     }
-    // Add copy button for bot messages
+
+    // 时间戳
+    var now = new Date();
+    var ts = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' +
+             String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
     if (type === 'bot') {
+      var footer = document.createElement('div');
+      footer.className = 'msg-footer bot';
+      var timeSpan = document.createElement('span');
+      timeSpan.textContent = ts;
+      footer.appendChild(timeSpan);
+
       var copyBtn = document.createElement('button');
       copyBtn.className = 'copy-btn';
-      copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">content_copy</span>';
+      copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>';
       copyBtn.title = '复制';
       copyBtn.addEventListener('click', function () {
         navigator.clipboard.writeText(text).then(function () {
-          copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check</span>';
+          copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">check</span>';
           setTimeout(function () {
-            copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">content_copy</span>';
+            copyBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>';
           }, 1500);
         });
       });
-      div.style.position = 'relative';
-      div.appendChild(copyBtn);
+      footer.appendChild(copyBtn);
+
+      container.appendChild(div);
+      container.appendChild(footer);
+    } else if (type === 'user') {
+      var uf = document.createElement('div');
+      uf.className = 'msg-footer user';
+      uf.textContent = ts;
+      container.appendChild(div);
+      container.appendChild(uf);
+    } else {
+      container.appendChild(div);
     }
-    msgs.appendChild(div);
+
+    msgs.appendChild(container);
     msgs.scrollTop = msgs.scrollHeight;
   }
 
@@ -199,11 +226,28 @@
     newItem.className = 'conv-menu-new';
     newItem.textContent = '+ 新会话';
     newItem.addEventListener('click', function () {
-      msgs.innerHTML = '<div class="msg system">新会话</div>';
+      msgs.innerHTML = '';
       if (window.screenToyDialog) window.screenToyDialog.clear();
       currentConvId = '';
       convTrigger.textContent = '+ 新会话';
       closeConvMenu();
+      // 显示当前风格
+      if (currentStyle) {
+        var mbtiType = (currentStyle.mbtiEI || 'E') + (currentStyle.mbtiSN || 'N') + (currentStyle.mbtiTF || 'F') + (currentStyle.mbtiJP || 'J');
+        var typeNames = {
+          'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
+          'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',
+          'ISTJ': '物流师', 'ISFJ': '守卫者', 'ESTJ': '总经理', 'ESFJ': '执政官',
+          'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
+        };
+        var typeName = typeNames[mbtiType] ? ' ' + typeNames[mbtiType] : '';
+        var modelName = MODEL_NAMES[currentStyle.agentModel] || currentStyle.agentModel || '';
+        var parts = [mbtiType + typeName];
+        if (modelName) parts.push(modelName);
+        addMsg('[当前风格] ' + parts.join(' · '), 'system', false);
+      } else {
+        msgs.innerHTML = '<div class="msg system">新会话</div>';
+      }
     });
     convMenu.appendChild(newItem);
     // 历史会话
@@ -253,6 +297,7 @@
       record.messages.forEach(function (m) {
         if (m.role === 'user') addMsg(m.content, 'user', false);
         else if (m.role === 'assistant') addMsg(m.content, 'bot', true);
+        else if (m.role === 'system') addMsg(m.content, 'system', false);
       });
       currentConvId = id;
       // 更新 trigger 文字
@@ -281,10 +326,11 @@
 
   // 监听 conversation ID（新会话开启时自动选中）
   if (window.screenToyDialog && window.screenToyDialog.onConversationId) {
-    window.screenToyDialog.onConversationId(function (id) {
-      currentConvId = id;
+    window.screenToyDialog.onConversationId(function (data) {
+      var newId = data.id || data;
+      currentConvId = newId;
       // 更新 trigger 文字
-      var item = conversationList.find(function (c) { return c.id === id; });
+      var item = conversationList.find(function (c) { return c.id === newId; });
       convTrigger.textContent = item ? item.title : '会话';
       // 刷新会话列表
       loadConversationList();
@@ -298,9 +344,17 @@
     });
   }
 
-  // 监听风格变更
-  if (window.screenToyDialog && window.screenToyDialog.onStyleChanged) {
-    window.screenToyDialog.onStyleChanged(function (style) {
+  // 监听当前风格（对话框打开时立即显示）
+  var currentStyle = null;
+  var MODEL_NAMES = {
+    'zhida-fast-1p5': '快速回答 (zhida-fast-1p5)',
+    'zhida-thinking-1p5': '深度思考 (zhida-thinking-1p5)',
+    'zhida-agent': '智能思考 (zhida-agent)',
+  };
+  if (window.screenToyDialog && window.screenToyDialog.onCurrentStyle) {
+    window.screenToyDialog.onCurrentStyle(function (style) {
+      if (!style || !style.mbtiEI) return;
+      currentStyle = style;
       var mbtiType = (style.mbtiEI || 'E') + (style.mbtiSN || 'N') + (style.mbtiTF || 'F') + (style.mbtiJP || 'J');
       var typeNames = {
         'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
@@ -309,7 +363,29 @@
         'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
       };
       var typeName = typeNames[mbtiType] ? ' ' + typeNames[mbtiType] : '';
-      addMsg('[风格变更] 回答风格已切换：' + mbtiType + typeName, 'system', false);
+      var modelName = MODEL_NAMES[style.agentModel] || style.agentModel || '';
+      msgs.innerHTML = '';
+      addMsg('[当前风格] ' + mbtiType + typeName + (modelName ? ' · ' + modelName : ''), 'system', false);
+    });
+  }
+
+  // 监听风格/模型变更（设置面板更改后自动更新）
+  if (window.screenToyDialog && window.screenToyDialog.onStyleChanged) {
+    window.screenToyDialog.onStyleChanged(function (style) {
+      // 更新缓存的当前风格
+      currentStyle = style;
+      var mbtiType = (style.mbtiEI || 'E') + (style.mbtiSN || 'N') + (style.mbtiTF || 'F') + (style.mbtiJP || 'J');
+      var typeNames = {
+        'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
+        'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',
+        'ISTJ': '物流师', 'ISFJ': '守卫者', 'ESTJ': '总经理', 'ESFJ': '执政官',
+        'ISTP': '鉴赏家', 'ISFP': '探险家', 'ESTP': '企业家', 'ESFP': '表演者',
+      };
+      var typeName = typeNames[mbtiType] ? ' ' + typeNames[mbtiType] : '';
+      var modelName = MODEL_NAMES[style.agentModel] || style.agentModel || '';
+      var parts = [mbtiType + typeName];
+      if (modelName) parts.push(modelName);
+      addMsg('[当前风格] 已更新为 ' + parts.join(' · '), 'system', false);
     });
   }
 
