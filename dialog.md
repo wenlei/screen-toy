@@ -38,7 +38,7 @@ send()
   ↓ IPC: dialog-send
   ↓ Agent 处理（搜索/直答）
   ↓ 流式渲染: onChunk → md2html → innerHTML
-  ↓ 完成: onReceive → addMsg
+  ↓ 完成: onReceive → 替换为带 footer 的 addMsg
   ↓ triggerBubble('来消息了') → 北极狐 OK 动画
 ```
 

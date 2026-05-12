@@ -52,7 +52,15 @@ const ERROR_MESSAGES: Record<string, string> = {
  * @param code 错误码字符串
  */
 export function getErrorMessage(code: string): string {
-  return ERROR_MESSAGES[code] || '出状况了。(未知错误 ' + code + ')';
+  var raw = ERROR_MESSAGES[code] || '出状况了。';
+  // 提取趣味文案和括号内的技术说明，拆分为两行
+  var match = raw.match(/^(.+?)\((.+?)\)$/);
+  if (match) {
+    var funMsg = match[1].trim();
+    var explain = match[2].trim();
+    return '出错了：' + explain + '，错误码是(' + code + ')。\n我翻译一下，这段话的意思是，' + funMsg + '。';
+  }
+  return '出错了，错误码是(' + code + ')。\n' + raw;
 }
 
 // ---- Web search utility ----
@@ -336,20 +344,17 @@ const MBTI_STYLE: Record<string, string> = {
  * @param mbtiType 完整的 MBTI 字符串
  * @param config Agent 配置文件
  */
-function generateMbtiStyle(mbtiType: string, config: AgentConfig): string {
+/**
+ * 构建风格前缀模板。当模型/风格更新时，Agent 重建时重新调用。
+ */
+function buildStylePrefix(config: AgentConfig): string {
+  if (!config.mbtiEI && !config.mbtiSN && !config.mbtiTF && !config.mbtiJP) return '';
   var lines: string[] = [];
-  var dims = [
-    { val: config.mbtiEI || 'E', label: '表达方式' },
-    { val: config.mbtiSN || 'N', label: '关注点' },
-    { val: config.mbtiTF || 'F', label: '决策方式' },
-    { val: config.mbtiJP || 'J', label: '风格' },
-  ];
-  dims.forEach(function (d) {
-    if (MBTI_STYLE[d.val]) {
-      lines.push(MBTI_STYLE[d.val]);
-    }
-  });
-  return lines.join('\n');
+  if (config.mbtiEI) lines.push(MBTI_STYLE[config.mbtiEI]);
+  if (config.mbtiSN) lines.push(MBTI_STYLE[config.mbtiSN]);
+  if (config.mbtiTF) lines.push(MBTI_STYLE[config.mbtiTF]);
+  if (config.mbtiJP) lines.push(MBTI_STYLE[config.mbtiJP]);
+  return '回复风格要求：\n' + lines.join('\n') + '\n\n';
 }
 
 // ---- Agent ----
@@ -362,6 +367,7 @@ export class Agent {
   private config: AgentConfig; // Agent 配置信息
   private history: ChatMessage[] = []; // 当前对话的历史记录
   private stylePrefix: string = ''; // MBTI 风格前缀（用于 Zhihu user 消息注入）
+  public searchResults: SearchResult[] = []; // 搜索结果数据（给 dialog 做模板渲染）
 
   /**
    * 构造函数，初始化配置并注入系统提示词和 MBTI 风格
@@ -369,19 +375,20 @@ export class Agent {
    */
   constructor(config: AgentConfig) {
     this.config = config;
-    // 为 Zhihu 构建风格前缀（注入到第一条 user 消息）
-    if (config.mbtiEI || config.mbtiSN || config.mbtiTF || config.mbtiJP) {
-      var styleLines: string[] = [];
-      if (config.mbtiEI) styleLines.push('- ' + MBTI_STYLE[config.mbtiEI]);
-      if (config.mbtiSN) styleLines.push('- ' + MBTI_STYLE[config.mbtiSN]);
-      if (config.mbtiTF) styleLines.push('- ' + MBTI_STYLE[config.mbtiTF]);
-      if (config.mbtiJP) styleLines.push('- ' + MBTI_STYLE[config.mbtiJP]);
-      this.stylePrefix = '回复风格要求：\n' + styleLines.join('\n') + '\n\n';
-    }
+    this.stylePrefix = buildStylePrefix(config);
     // 仍保留 system prompt 作为内部历史记录（不发送给 Zhihu）
     if (config.systemPrompt) {
       this.history.push({ role: 'system', content: config.systemPrompt });
     }
+  }
+
+  /**
+   * 模板函数：拼接风格前缀 + 用户输入。
+   * 每次发送消息时调用，当 Agent 重建（风格/模型更新）时自动使用新模板。
+   */
+  buildUserMessage(userInput: string): string {
+    if (this.config.provider !== 'zhihu') return userInput;
+    return (this.stylePrefix || '') + userInput;
   }
 
   /**
@@ -397,6 +404,13 @@ export class Agent {
   clearHistory(): void {
     const sys = this.history[0]?.role === 'system' ? this.history[0] : null;
     this.history = sys ? [sys] : [];
+  }
+
+  /**
+   * 向对话历史中追加一条消息（用于外部同步，如热榜）
+   */
+  pushMessage(msg: ChatMessage): void {
+    this.history.push(msg);
   }
 
   /**
@@ -466,14 +480,18 @@ export class Agent {
         } catch (e) { throw e; }
       }
       if (searchResults.length > 0) {
-        var reply = '🔍 搜索结果：\n\n';
-        searchResults.forEach((r, i) => {
-          reply += '**' + r.title + '**\n' + r.snippet + '\n[' + r.title + '](' + r.url + ')\n\n';
+        var html = '<div class="search-results" style="margin-bottom:8px;">🔍 <strong>搜索结果</strong></div>';
+        searchResults.forEach(function (r: SearchResult) {
+          html += '<div class="hotlist-item">';
+          if (r.snippet) html += '<span class="hotlist-toggle material-symbols-outlined">expand_more</span>';
+          html += '<a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a>';
+          if (r.snippet) html += '<div class="hotlist-summary">' + r.snippet + '</div>';
+          html += '</div>';
         });
         this.history.push({ role: 'user', content: content });
-        this.history.push({ role: 'assistant', content: reply });
-        if (onDone) onDone(reply);
-        return reply;
+        this.history.push({ role: 'assistant', content: html });
+        if (onDone) onDone(html);
+        return html;
       } else {
         var noResult = '没有找到相关结果。';
         this.history.push({ role: 'user', content: content });
@@ -497,10 +515,15 @@ export class Agent {
         }
         if (searchResults2.length === 0) searchResults2 = await searchBing(content);
         if (searchResults2.length > 0) {
+          // 模型输入：纯文本格式（不展示给用户）
           searchContext = `\n\n---\n以下为搜索结果，请参考这些信息回答。回复末尾列出引用的来源，每条一行：\n`;
           searchResults2.forEach((r, i) => {
             searchContext += `\n${r.title}\n${r.snippet}\n[${r.title}](${r.url})\n`;
           });
+          // 视觉展示：传原始数据给 dialog，由模板函数渲染
+          this.searchResults = searchResults2;
+        } else {
+          this.searchResults = [];
         }
       } catch (e) { throw e; }
     }
@@ -510,38 +533,19 @@ export class Agent {
       ? content + searchContext
       : content;
 
-    this.history.push({ role: 'user', content: userContent });
-
     // 构建发送给模型的消息列表
     var sendMessages;
     if (this.config.provider === 'zhihu') {
-      // Zhihu 不支持 system role，过滤掉系统消息，但把格式化指令加到第一条用户消息
-      sendMessages = this.history.filter(function (m) { return m.role !== 'system'; }).slice(-10);
-      // 获取系统提示词中的格式指令
-      var sysPrompt = this.history[0]?.content || '';
-      var formatInstructions = '';
-      if (sysPrompt.includes('## 回复格式')) {
-        var start = sysPrompt.indexOf('## 回复格式');
-        var end = sysPrompt.indexOf('##', start + 5);
-        formatInstructions = sysPrompt.slice(start, end > 0 ? end : start + 200).trim();
-      }
-      if (sysPrompt.includes('## 关于搜索结果')) {
-        var searchStart = sysPrompt.indexOf('## 关于搜索结果');
-        var searchEnd = sysPrompt.indexOf('##', searchStart + 5);
-        formatInstructions += '\n' + sysPrompt.slice(searchStart, searchEnd > 0 ? searchEnd : searchStart + 200).trim();
-      }
-      // 注入风格前缀到第一条用户消息
-      var prefix = (this.stylePrefix || '') + formatInstructions;
-      // 把格式指令和风格前缀加到第一条用户消息
-      if (sendMessages.length > 0 && sendMessages[0].role === 'user' && prefix) {
-        sendMessages[0] = {
-          role: 'user',
-          content: prefix + '\n\n' + sendMessages[0].content
-        };
-      }
+      // 拿历史（不含当前消息），少拿一条给模板版留位置
+      sendMessages = this.history.filter(function (m) { return m.role !== 'system'; }).slice(-9);
+      // 直接推模板结果
+      sendMessages.push({ role: 'user', content: this.buildUserMessage(userContent) });
     } else {
       sendMessages = this.history;
     }
+
+    // 保存干净版到 history（模板版不发回显示，也不发给模型做历史上下文）
+    this.history.push({ role: 'user', content: userContent });
 
     var bodyObj: any = {
       model: this.config.model,

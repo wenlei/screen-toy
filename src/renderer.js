@@ -18,7 +18,7 @@
     Math.floor((canvas.width - 32) / RobotSprite.WIDTH),
     Math.floor((canvas.height - 32) / RobotSprite.HEIGHT)
   ));
-  var displayScale = cfg.displayScale;
+  var displayScale = cfg.displayScale || 0.7;
   var SCALE = BASE_SCALE * displayScale;
 
   // Robot object (passed to behavior)
@@ -99,16 +99,14 @@
   // format: { percent: 0-100, text: "..." }
   var ANIM_DIALOGUES = {
     twist: [{ p: 0, text: '哎呀，我拧巴了！' },
-    { p: 90, text: '拧不动了就不拧了。' }],
-    // hula:      [{ p: 0,   text: '穿裙子咯~' },
-    //             { p: 50,  text: '左三圈右三圈...' },
-    //             { p: 100, text: '跳完啦！' }],
+    { p: 90, text: '拧不动了，就先拧到这了。' }],
+    // hula:      [ { p: 50,  text: '想不出来词儿了...,我也先不拧了' },],
     sneeze: [{ p: 0, text: '啊...啊...' },
     { p: 80, text: '阿嚏！！！' }],
     // melt: [{ p: 80, text: '我化了' }],
     freeze: [{ p: 80, text: '刚才听了一个笑话。' }],
     apple: [{ p: 80, text: '我要长脑子了。' }],
-    bignose: [{ p: 80, text: '天生鼻子大。' }],
+    bignose: [{ p: 80, text: '鼻子有点沉重...' }],
     flower: [{ p: 0, text: '花开就会花落' },
     { p: 80, text: '总有下一个春天。' }],
   };
@@ -197,7 +195,7 @@
     window.screenToy.onSettingsChanged(function (settings) {
       behavior.setSettings(settings);
       if (settings.displayScale !== undefined) {
-        displayScale = settings.displayScale;
+        displayScale = Math.max(settings.displayScale, 0.1);
         SCALE = BASE_SCALE * displayScale;
       }
     });
@@ -300,86 +298,17 @@
     });
 
     // 事件动画配置（日期驱动）
+    // 保存默认绘制方法的引用，用于日期过后恢复
+    var _origEnterDrawDirect = window.EnterSprite ? window.EnterSprite.drawDirect : null;
+    var _origQuitDraw = window.QuitSprite ? window.QuitSprite.draw : null;
+    var _origQuitDrawDirect = window.QuitSprite ? window.QuitSprite.drawDirect : null;
+
     window.screenToy.onEventAnimationsConfig(function (config) {
-      window.__EVENT_ANIM_CONFIG = config;
-      // 如果配置中指定了特殊入场动画，替换 EnterSprite.drawDirect
-      if (config && config.animations && config.animations.enter) {
-        var folder = (window.__CONFIG && window.__CONFIG.spriteFolder) || 'arctic_fox';
-        var img = new Image();
-        img.src = 'assets/doodles/' + folder + '/' + config.animations.enter;
-        var origDrawDirect = window.EnterSprite.drawDirect;
-        window.EnterSprite.drawDirect = function (ctx, frameIdx, dx, dy, dw, dh) {
-          if (img.complete && img.naturalWidth > 0) {
-            var fw = 256, fh = 256, cols = 6;
-            var fi = Math.max(0, Math.min(frameIdx, 23));
-            var col = fi % cols;
-            var row = Math.floor(fi / cols);
-            var scale = Math.min(dw / fw, dh / fh);
-            var rdw = Math.round(fw * scale);
-            var rdh = Math.round(fh * scale);
-            var rdx = dx + Math.round((dw - rdw) / 2);
-            var rdy = dy + Math.round((dh - rdh) / 2);
-            ctx.drawImage(img, col * fw, row * fh, fw, fh, rdx, rdy, rdw, rdh);
-          } else {
-            origDrawDirect(ctx, frameIdx, dx, dy, dw, dh);
-          }
-        };
-      }
+      EventAnim.apply(config);
     });
 
-    // 退场动画配置（日期驱动）
     window.screenToy.onQuitAnimationsConfig(function (config) {
-      window.__QUIT_ANIM_CONFIG = config;
-      if (config && config.animations && config.animations.quit) {
-        var folder = (window.__CONFIG && window.__CONFIG.spriteFolder) || 'arctic_fox';
-        var img = new Image();
-        img.src = 'assets/doodles/' + folder + '/' + config.animations.quit;
-        var origDraw = window.QuitSprite.draw;
-        var origDrawDirect = window.QuitSprite.drawDirect;
-
-        window.QuitSprite.draw = function (ctx, frameIdx) {
-          var fi = Math.max(0, Math.min(frameIdx, 23));
-          var col = fi % 6;
-          var row = Math.floor(fi / 6);
-          var sx = col * 256;
-          var sy = row * 256;
-          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-          if (!img.complete || img.naturalWidth === 0) {
-            origDraw(ctx, frameIdx);
-            return;
-          }
-          var scale = Math.min(ctx.canvas.width / 256, ctx.canvas.height / 256);
-          var dw = Math.round(256 * scale);
-          var dh = Math.round(256 * scale);
-          var dx = Math.round((ctx.canvas.width - dw) / 2);
-          var dy = Math.round((ctx.canvas.height - dh) / 2);
-          ctx.save();
-          ctx.filter = 'saturate(0)';
-          ctx.drawImage(img, sx, sy, 256, 256, dx, dy, dw, dh);
-          ctx.restore();
-        };
-
-        window.QuitSprite.drawDirect = function (ctx, frameIdx, dx, dy, dw, dh) {
-          var fi = Math.max(0, Math.min(frameIdx, 23));
-          var col = fi % 6;
-          var row = Math.floor(fi / 6);
-          var sx = col * 256;
-          var sy = row * 256;
-          if (!img.complete || img.naturalWidth === 0) {
-            origDrawDirect(ctx, frameIdx, dx, dy, dw, dh);
-            return;
-          }
-          var scale = Math.min(dw / 256, dh / 256);
-          var rdw = Math.round(256 * scale);
-          var rdh = Math.round(256 * scale);
-          var rdx = dx + Math.round((dw - rdw) / 2);
-          var rdy = dy + Math.round((dh - rdh) / 2);
-          ctx.save();
-          ctx.filter = 'saturate(0)';
-          ctx.drawImage(img, sx, sy, 256, 256, rdx, rdy, rdw, rdh);
-          ctx.restore();
-        };
-      }
+      EventAnim.apply(config);
     });
   }
 
@@ -738,7 +667,7 @@
             twistPhase = 0;
             twistFrameIdx = 0;
             twistFrameTimer = 0;
-            randomAnimCooldown = (25 + Math.random() * 35) * 1000;
+            randomAnimCooldown = resetRandomAnimCooldown();
           }
         }
         if (twistPhase > 0) checkAnimDialogue('twist', (twistPhase - 1) * 24 + twistFrameIdx, 72);
@@ -746,7 +675,7 @@
         // Single cooldown → pick one random animation from pool
         var canAutoAnim = !isDragging && !behavior.isSleeping() && behavior.state !== 'waking_up' && !sunGameActive;
         if (canAutoAnim) {
-          var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive && twistPhase === 0 && applePhase === 0;
+          var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive && twistPhase === 0 && applePhase === 0 && freezePhase === 0 && !bigNoseActive && flowerPhase === 0;
           if (noOtherAnim) {
             randomAnimCooldown -= dt * 1000;
             if (randomAnimCooldown <= 0) {
@@ -776,10 +705,10 @@
 
       // Screen bounds — use workArea (avail*) so Dock and menu bar are respected
       var sb = {
-        x:      typeof screen !== 'undefined' ? (screen.availLeft   || 0)    : 0,
-        y:      typeof screen !== 'undefined' ? (screen.availTop    || 0)    : 0,
-        width:  typeof screen !== 'undefined' ? (screen.availWidth  || 1440) : 1440,
-        height: typeof screen !== 'undefined' ? (screen.availHeight || 900)  : 900,
+        x: typeof screen !== 'undefined' ? (screen.availLeft || 0) : 0,
+        y: typeof screen !== 'undefined' ? (screen.availTop || 0) : 0,
+        width: typeof screen !== 'undefined' ? (screen.availWidth || 1440) : 1440,
+        height: typeof screen !== 'undefined' ? (screen.availHeight || 900) : 900,
       };
 
       // During drag, update position from mouseScreen
@@ -787,7 +716,7 @@
         behavior.screenX = mouseScreen.x - dragOffsetX;
         behavior.screenY = mouseScreen.y - dragOffsetY;
         // Clamp so the window stays fully within the work area (excluding Dock/menu bar)
-        behavior.screenX = clamp(behavior.screenX, sb.x + canvas.width  / 2, sb.x + sb.width  - canvas.width  / 2);
+        behavior.screenX = clamp(behavior.screenX, sb.x + canvas.width / 2, sb.x + sb.width - canvas.width / 2);
         behavior.screenY = clamp(behavior.screenY, sb.y + canvas.height / 2, sb.y + sb.height - canvas.height / 2);
       }
 
@@ -844,7 +773,7 @@
             // Higher score → lower top speed (fox gets heavier; min 30% of max)
             var speedFactor = Math.max(0.3, 1 - sunPoints / 120);
             var foxSpd = (FOX_MIN_SPEED + (FOX_MAX_SPEED - FOX_MIN_SPEED) * t) * speedFactor;
-            var tx = clamp(mouseScreen.x, sb.x + canvas.width  / 2, sb.x + sb.width  - canvas.width  / 2);
+            var tx = clamp(mouseScreen.x, sb.x + canvas.width / 2, sb.x + sb.width - canvas.width / 2);
             var ty = clamp(mouseScreen.y, sb.y + canvas.height / 2, sb.y + sb.height - canvas.height / 2);
             var mdx = tx - fx, mdy = ty - fy;
             var mdist = Math.sqrt(mdx * mdx + mdy * mdy);

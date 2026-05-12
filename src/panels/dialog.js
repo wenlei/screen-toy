@@ -129,7 +129,9 @@
 
     var div = document.createElement('div');
     div.className = 'msg ' + type;
-    if (isMarkdown && type === 'bot') {
+    if (isMarkdown === 'html') {
+      div.innerHTML = text;
+    } else if (isMarkdown && type === 'bot') {
       div.innerHTML = md2html(text);
     } else {
       div.textContent = text;
@@ -285,6 +287,55 @@
     });
   }
 
+  // 搜索结果模板 → 可折叠 HTML
+  function renderSearchResults(results, title) {
+    var html = '<div class="search-results" style="margin-bottom:8px;">🔍 <strong>' + (title || '搜索结果') + '</strong></div>';
+    results.forEach(function (r) {
+      html += '<div class="hotlist-item">';
+      if (r.snippet || r.summary) html += '<span class="hotlist-toggle material-symbols-outlined">expand_more</span>';
+      if (r.url) html += '<a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a>';
+      else html += r.title;
+      var s = r.snippet || r.summary || '';
+      if (s) html += '<div class="hotlist-summary">' + s.slice(0, 200) + '</div>';
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function convertHotlistToHtml(text) {
+    var lines = text.split('\n');
+    var html = '';
+    var i = 0;
+    // 标题行
+    if (lines[i] && /^🔥/.test(lines[i])) {
+      html += '<div class="search-results" style="margin-bottom:8px;">' + lines[i].replace(/\*\*/g, '<strong>').replace(/<strong>\s*<\/strong>/g, '').replace(/^\*\s*/, '') + '</div>';
+      i++;
+    }
+    // 条目
+    while (i < lines.length) {
+      var line = lines[i];
+      var match = line.match(/^\*\*(\d+)\.\*\*\s*\[(.+?)\]\((.+?)\)/);
+      if (match) {
+        var title = match[2];
+        var url = match[3];
+        i++;
+        var summary = '';
+        while (i < lines.length && lines[i] && !/^\*\*\d+\.\*\*/.test(lines[i])) {
+          summary += lines[i] + ' ';
+          i++;
+        }
+        html += '<div class="hotlist-item">';
+        if (summary.trim()) html += '<span class="hotlist-toggle material-symbols-outlined">expand_more</span>';
+        html += '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>';
+        if (summary.trim()) html += '<div class="hotlist-summary">' + summary.trim() + '</div>';
+        html += '</div>';
+      } else {
+        i++;
+      }
+    }
+    return html;
+  }
+
   function loadConv(id) {
     if (!window.screenToyDialog || !window.screenToyDialog.loadConversation) return;
     msgs.innerHTML = '<div class="msg system">加载中...</div>';
@@ -296,13 +347,26 @@
       msgs.innerHTML = '';
       record.messages.forEach(function (m) {
         if (m.role === 'user') addMsg(m.content, 'user', false);
-        else if (m.role === 'assistant') addMsg(m.content, 'bot', true);
+        else if (m.role === 'assistant') {
+          var isHtml = /^<div\b/i.test(m.content);
+          // 热榜 Markdown 文本 → 转换为折叠 HTML
+          if (!isHtml && /^🔥\s\*\*知乎热榜 Top/.test(m.content)) {
+            m.content = convertHotlistToHtml(m.content);
+            isHtml = true;
+          }
+          addMsg(m.content, 'bot', isHtml ? 'html' : true);
+        }
         else if (m.role === 'system') addMsg(m.content, 'system', false);
       });
       currentConvId = id;
       // 更新 trigger 文字
       var item = conversationList.find(function (c) { return c.id === id; });
       convTrigger.textContent = item ? item.title : '会话';
+      // 恢复直答开关状态
+      if (enableDirectAnswerEl && record.enableDirectAnswer !== undefined) {
+        enableDirectAnswerEl.checked = record.enableDirectAnswer !== false;
+        updateSearchMode();
+      }
     });
   }
 
@@ -389,6 +453,16 @@
     });
   }
 
+  // 监听搜索结果（直答 ON 时的搜索上下文）
+  if (window.screenToyDialog && window.screenToyDialog.onSearchResults) {
+    window.screenToyDialog.onSearchResults(function (results) {
+      if (results && results.length > 0) {
+        var html = renderSearchResults(results, '搜索上下文');
+        addMsg(html, 'bot', 'html');
+      }
+    });
+  }
+
   // ---- 启用直答开关 ----
   var enableDirectAnswerEl = document.getElementById('enableDirectAnswer');
   function updateSearchMode() {
@@ -468,17 +542,20 @@
     window.screenToyDialog.onReceive(function (msg) {
       waiting = false;
       if (msg === '...') return;
-      if (msg.startsWith('(新会话)') || msg.startsWith('(新会话)')) {
+      if (msg.startsWith('(新会话)')) {
         msgs.innerHTML = '<div class="msg system">' + msg + '</div>';
         return;
       }
       if (streamingEl) {
-        // 流式已完成，最终渲染
-        streamingEl.innerHTML = md2html(msg);
+        // 流式已完成，替换为带 footer 的消息
+        if (streamingEl.parentNode) streamingEl.remove();
         streamingEl = null;
         streamingText = '';
-      } else {
         addMsg(msg, 'bot', true);
+      } else {
+        // 自动检测 HTML 内容（搜索结果 / 热榜已使用 HTML 格式）
+        var isHtml = /^<div\b/i.test(msg);
+        addMsg(msg, 'bot', isHtml ? 'html' : true);
       }
 
       if (msg.length > 20 && window.screenToyDialog.triggerBubble) {
@@ -503,18 +580,20 @@
             addMsg('暂无热榜数据', 'system', false);
             return;
           }
+          // 构建 HTML：标题可点击，摘要默认折叠
+          var html = renderSearchResults(items.map(function (item) {
+            return { title: item.title, url: item.url, summary: item.summary };
+          }), '知乎热榜 Top ' + items.length);
+          addMsg(html, 'bot', 'html');
+
+          // 保存热榜结果到会话历史（保存纯文本，模型用；加载时转换为 HTML 显示）
           var text = '🔥 **知乎热榜 Top ' + items.length + '**\n\n';
           items.forEach(function (item, i) {
-            if (item.url) {
-              text += '**' + (i + 1) + '.** [' + item.title + '](' + item.url + ')\n';
-            } else {
-              text += '**' + (i + 1) + '.** ' + item.title + '\n';
-            }
+            if (item.url) text += '**' + (i + 1) + '.** [' + item.title + '](' + item.url + ')\n';
+            else text += '**' + (i + 1) + '.** ' + item.title + '\n';
             if (item.summary) text += item.summary.slice(0, 200) + '\n';
             text += '\n';
           });
-          addMsg(text, 'bot', true);
-          // 保存热榜结果到会话历史
           if (window.screenToyDialog && window.screenToyDialog.saveHotlistToHistory) {
             window.screenToyDialog.saveHotlistToHistory(text);
           }
@@ -522,4 +601,15 @@
       }
     });
   }
+  // 热榜摘要折叠/展开（事件委托）
+  msgs.addEventListener('click', function (e) {
+    if (e.target.classList.contains('hotlist-toggle')) {
+      var summary = e.target.parentNode.querySelector('.hotlist-summary');
+      if (summary) {
+        var isHidden = summary.style.display === 'none' || !summary.style.display;
+        summary.style.display = isHidden ? 'block' : 'none';
+        e.target.textContent = isHidden ? 'expand_less' : 'expand_more';
+      }
+    }
+  });
 })();
