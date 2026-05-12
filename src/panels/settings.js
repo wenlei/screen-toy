@@ -9,8 +9,8 @@
     hotListLimit: 10,
     mbtiEI: 'E',
     mbtiSN: 'N',
-    mbtiTF: 'F',
-    mbtiJP: 'J',
+    mbtiTF: 'T',
+    mbtiJP: 'P',
   };
 
   var menuApps = [];
@@ -123,7 +123,7 @@
 
   // ---- Values ----
   // ---- MBTI 人格风格 toggle ----
-  var mbtiValues = { EI: 'E', SN: 'N', TF: 'F', JP: 'J' };
+  var mbtiValues = { EI: 'E', SN: 'N', TF: 'T', JP: 'P' };
   var MBTI_TYPES = {
     'INTJ': '建筑师', 'INTP': '逻辑学家', 'ENTJ': '指挥官', 'ENTP': '辩论家',
     'INFJ': '提倡者', 'INFP': '调停者', 'ENFJ': '主人公', 'ENFP': '竞选者',

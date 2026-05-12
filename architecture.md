@@ -72,8 +72,8 @@ Communication between main and renderer processes via typed IPC channels:
 | `conversation-load` | dialog ↔ main | Load a Session with meta info |
 | `conversation-delete` | dialog → main | Delete a Session |
 | `refresh-conversation-list` | main → dialog | Notify to refresh dropdown |
-| `dialog-conversation-id` | main → dialog | Current Session ID |
-| `style-changed` | main → dialog | MBTI style change notification |
+| `dialog-conversation-id` | main → dialog | Current Session ID + MBTI info |
+| `style-changed` | main → dialog | MBTI style / model change notification |
 | `zhihu-hot-list` | dialog → main | Fetch hotlist |
 | `save-hotlist-to-history` | dialog → main | Save hotlist to Session |
 | `apply-settings` | settings → main | Save settings |
@@ -81,8 +81,10 @@ Communication between main and renderer processes via typed IPC channels:
 | `mouse-pos` | main → renderer | Mouse position for pet interaction |
 | `event-animations-config` | main → renderer | Date-matched event animation override (enter) |
 | `quit-animations-config` | main → renderer | Date-matched event animation override (quit) |
-| `save-hotlist-to-history` | dialog → main | Save hotlist result to session |
 | `dialog-current-style` | main → dialog | Send current MBTI style on dialog open |
+| `dialog-search-results` | main → dialog | Send search results for collapsible display |
+| `dialog-bookmark` | dialog → main | Bookmark a bot message to session |
+| `dialog-selection-query` | main → dialog | Selected text query via Cmd+Shift+K |
 
 ---
 

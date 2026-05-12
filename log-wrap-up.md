@@ -21,7 +21,7 @@
 
 **文件**：
 - `src/assets/doodles/arctic_fox/event_animations.json`（新增）
-- `src/assets/doodles/arctic_fox/animations.md`（新增文档）
+- `animations.md`（新增文档）
 
 ---
 
@@ -266,6 +266,107 @@
 |---|------|--------|------|
 | 1 | `zhida-agent` 模型不支持上下文历史传参（需验证） | 中 | 待验证 |
 | 2 | Windows / Linux / HarmonyOS 打包 | 低 | 待实现 |
+| 3 | 内容收藏功能（北极狐 thinking bubble 菜单联动） | 低 | 待讨论 |
+
+---
+
+## 2026-05-12
+
+### 20. 流式响应 reasoning_content 修复
+
+**需求**：直答有时返回"流式响应为空"错误
+
+**模块**：`electron/agent.ts`
+
+**改动点**：
+- `agent.ts:603-647` — 流式 SSE 同时累积 `delta.content` 和 `delta.reasoning_content`
+- `reasoning_content` 仅内部记录，不发送 `onChunk`（避免干扰流式渲染）
+- 响应完结时: `finalReply = fullReply || reasoningText`，content 为空时回退 reasoning
+
+---
+
+### 21. 渲染层引用来源切分
+
+**需求**：AI 回复中的引用来源与搜索上下文框重复显示
+
+**模块**：`src/panels/dialog.js`
+
+**改动点**：
+- `dialog.js:291-303` — 新增 `stripCitations(text)` 函数，匹配三种引用块标记（`\n引用来源\n`、`\n---\n* [`、`\n**引用来源**\n`）
+- `dialog.js:150` — `addMsg` 对 markdown bot 消息自动调用 `stripCitations`
+- 不影响 `history` 保存（完整文本存入 knowledge.json，仅显示层切分）
+
+---
+
+### 22. 划词提问
+
+**需求**：选中文本 → 快捷键直接提问
+
+**模块**：`electron/main.ts` · `electron/preload.ts` · `src/panels/dialog.js`
+
+**改动点**：
+- `main.ts:1140-1161` — 注册全局快捷键 `Cmd+Shift+K`
+- 触发时：保存剪贴板 → 模拟 Cmd+C → 读取选中文字 → 恢复剪贴板 → 自动打开 dialog 并发送
+- `preload.ts:169-172` — `onSelectionQuery` IPC 监听
+- `dialog.js:466-472` — 收到后填入 `input.value` 并调用 `send()`
+
+---
+
+### 23. 消息收藏按钮
+
+**需求**：Bot 消息 footer 增加收藏功能
+
+**模块**：`electron/main.ts` · `electron/preload.ts` · `src/panels/dialog.html` · `src/panels/dialog.js`
+
+**改动点**：
+- `dialog.html:53-54` — `.save-btn` CSS（颜色 `#FF9500`）
+- `dialog.js:183-194` — bot footer 新增 `bookmark_border` 按钮，点击变 `bookmark` 图标
+- `preload.ts:173-175` — `bookmarkMessage` IPC
+- `main.ts:628-653` — `dialog-bookmark` handler，保存收藏到当前 Session
+
+---
+
+### 24. MBTI 默认值统一 ENTP
+
+**需求**：避免 HTML 默认 ENFJ 与存储值 ENTP 的视觉闪烁
+
+**模块**：`src/panels/settings.html` · `src/panels/settings.js` · `electron/main.ts`
+
+**改动点**：
+- HTML 默认 active: E, N, T, P；提示语: T="逻辑清晰...", P="灵活随性..."
+- `settings.js:4-7` — `mbtiTF: 'T'`, `mbtiJP: 'P'`
+- `main.ts:71-74` — 同理更新
+- 三处一致 ENTP，加载无闪烁
+
+---
+
+### 25. 会话下拉图标优化
+
+**需求**：会话切换下拉按钮提示不明显
+
+**模块**：`src/panels/dialog.html`
+
+**改动点**：
+- `▼` (10px, `#aaa`) → Material Icon `arrow_drop_down` (16px, `#6E6E73`)
+
+---
+
+### 26. Git 提交记录
+
+| Commit | 说明 |
+|--------|------|
+| `feafbd4` | fix: 动画审计修复 + 风格模板重构 + 清理无效文件 |
+| `6119e5c` | fix: 流式响应 reasoning_content 支持 + 划词提问 + 引用切分 |
+
+---
+
+## 待办 / 未完成
+
+| # | 事项 | 优先级 | 状态 |
+|---|------|--------|------|
+| 1 | `zhida-agent` 模型不支持上下文历史传参（需验证） | 中 | 待验证 |
+| 2 | Windows / Linux / HarmonyOS 打包 | 低 | 待实现 |
+| 3 | 内容收藏功能（北极狐 thinking bubble 菜单联动） | 低 | 待讨论 |
 
 ---
 
