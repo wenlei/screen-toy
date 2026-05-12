@@ -82,15 +82,20 @@ function testUserInfo() {
   var appKey = document.getElementById('appKey').value;
   var appSecret = document.getElementById('appSecret').value;
   var out = document.getElementById('output');
-  out.textContent = '请求中...';
+  out.textContent = '请求中...\n\n⚠️ 浏览器可能拦截跨域请求（CORS），建议用 curl 或 postman 测试。';
 
   signRequest(appKey, appSecret).then(function (headers) {
-    return fetch(DOMAIN + '/openapi/user', { method: 'GET', headers: headers });
-  }).then(function (res) { return res.json(); })
-  .then(function (data) {
-    out.textContent = JSON.stringify(data, null, 2);
+    out.textContent += '\n\n请求头：\n' + Object.entries(headers).map(function ([k,v]) { return k + ': ' + v; }).join('\n');
+    out.textContent += '\n\n签名字符串: app_key:${appKey}|ts:${headers[\"X-Timestamp\"]}|logid:${headers[\"X-Log-Id\"]}|extra_info:';
+    out.textContent += '\n\n复制以下 curl 命令在终端测试：\n';
+    out.textContent += 'curl -s "' + DOMAIN + '/openapi/ring/detail?ring_id=2001009660925334090" \\\n';
+    out.textContent += '  -H "X-App-Key: ' + appKey + '" \\\n';
+    out.textContent += '  -H "X-Timestamp: ' + headers['X-Timestamp'] + '" \\\n';
+    out.textContent += '  -H "X-Sign: ' + headers['X-Sign'] + '" \\\n';
+    out.textContent += '  -H "X-Log-Id: ' + headers['X-Log-Id'] + '" \\\n';
+    out.textContent += '  -H "X-Extra-Info: "';
   }).catch(function (err) {
-    out.textContent = '❌ 请求失败：' + err.message + '\n可能被 CORS 阻止';
+    out.textContent += '\n\n❌ 签名失败：' + err.message;
   });
 }
 </script>
