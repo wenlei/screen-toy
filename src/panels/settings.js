@@ -200,6 +200,7 @@
       btns.forEach(function (btn) {
         btn.classList.toggle('active', btn.dataset.val === mbtiValues[row.key]);
       });
+      updateMbtiHint(row);
     });
   }
 
@@ -255,6 +256,7 @@
     var btns = el.querySelectorAll('.mbti-btn');
     btns.forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (mbtiValues[row.key] === btn.dataset.val) return;
         btns.forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         mbtiValues[row.key] = btn.dataset.val;
