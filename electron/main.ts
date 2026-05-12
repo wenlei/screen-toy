@@ -62,7 +62,7 @@ const currentSettings = {
   selectedApps: [] as string[],
   customApps: [] as { id: string; name: string }[],
   menuApps: [] as { id: string; name: string; icon: string; cmd: string; appPath: string }[],
-  agentApiKey: '',
+  agentApiKey: 'glywLStqwOGbkLNpO1f3ODZ0EACBTH3X',
   agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
   agentModel: 'zhida-fast-1p5',
   agentProvider: 'zhihu' as string,
