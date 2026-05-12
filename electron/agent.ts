@@ -600,6 +600,7 @@ export class Agent {
           if (stream) {
             // SSE streaming mode
             let fullReply = '';
+            let reasoningText = '';
             let buffer = '';
             res.on('data', (chunk: Buffer) => {
               buffer += chunk.toString();
@@ -611,10 +612,15 @@ export class Agent {
                   if (payload === '[DONE]') continue;
                   try {
                     const json = JSON.parse(payload);
-                    const delta = json.choices?.[0]?.delta?.content || '';
-                    if (delta) {
-                      fullReply += delta;
-                      if (onChunk) onChunk(delta);
+                    const delta = json.choices?.[0]?.delta || {};
+                    const content = delta.content || '';
+                    const reasoning = delta.reasoning_content || '';
+                    if (content) {
+                      fullReply += content;
+                      if (onChunk) onChunk(content);
+                    }
+                    if (reasoning) {
+                      reasoningText += reasoning;
                     }
                   } catch (e) { throw e; }
                 }
@@ -630,6 +636,17 @@ export class Agent {
                 if (onError) onError(errMsg);
                 reject(new Error(errMsg));
                 return;
+              }
+              // 优先 content，空时回退 reasoning
+              var finalReply = fullReply || reasoningText;
+              if (finalReply) {
+                this.history.push({ role: 'assistant', content: finalReply });
+                if (onDone) onDone(finalReply);
+                resolve(finalReply);
+              } else {
+                const errMsg = '流式响应为空';
+                if (onError) onError(errMsg);
+                reject(new Error(errMsg));
               }
               if (fullReply) {
                 this.history.push({ role: 'assistant', content: fullReply });

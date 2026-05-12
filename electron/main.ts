@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Agent, getDefaultSystemPrompt, fetchZhihuHotList, getErrorMessage } from './agent';
@@ -1141,13 +1141,29 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   startMousePolling();
-});
 
-app.on('window-all-closed', () => {
-  // Don't quit — tray keeps running
+  // 全局快捷键：划词提问
+  globalShortcut.register('Command+Shift+K', () => {
+    try {
+      // 保存当前剪贴板 → 模拟 Cmd+C → 读取选中文本 → 恢复剪贴板
+      var prevClipboard = require('electron').clipboard.readText();
+      execSync("osascript -e 'tell application \"System Events\" to keystroke \"c\" using command down'");
+      setTimeout(() => {
+        var text = require('electron').clipboard.readText();
+        require('electron').clipboard.writeText(prevClipboard || '');
+        if (text && text.trim().length > 0) {
+          createDialogWindow();
+          if (dialogWin && !dialogWin.isDestroyed()) {
+            dialogWin.webContents.send('dialog-selection-query', text.trim());
+          }
+        }
+      }, 200);
+    } catch (e) {}
+  });
 });
 
 app.on('before-quit', () => {
+  globalShortcut.unregisterAll();
   stopMousePolling();
 });
 

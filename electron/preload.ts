@@ -170,6 +170,10 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
     ipcRenderer.removeAllListeners('dialog-search-results');
     ipcRenderer.on('dialog-search-results', (_event, results) => callback(results));
   },
+  onSelectionQuery: (callback: (text: string) => void) => {
+    ipcRenderer.removeAllListeners('dialog-selection-query');
+    ipcRenderer.on('dialog-selection-query', (_event, text: string) => callback(text));
+  },
 });
 
 contextBridge.exposeInMainWorld('bubbleAPI', {

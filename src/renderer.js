@@ -934,7 +934,7 @@
         var appleFrameToShow = Math.min(appleFrameIdx, (applePhase === 1 ? window.AppleSprite : window.HudunSprite || window.AppleSprite).FRAME_COUNT - 1);
         var appleSprite = applePhase === 1 ? window.AppleSprite : window.HudunSprite;
         if (appleSprite) {
-          var appleScale = applePhase === 2 ? 1.346 : 1.3;
+          var appleScale = 1.3;
           var appleDW = Math.round(dW * appleScale);
           var appleDH = Math.round(dH * appleScale);
           var appleOx = Math.round(canvas.width / 2 - appleDW / 2);
