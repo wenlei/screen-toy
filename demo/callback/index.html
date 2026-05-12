@@ -29,7 +29,7 @@
 var PROXY = 'https://delightful-forgiveness-production.up.railway.app/exchange';
 
 var params = new URLSearchParams(window.location.search);
-var code = params.get('code');
+var code = params.get('authorization_code') || params.get('code');
 var debug = document.getElementById('debug');
 
 var allParams = [];
