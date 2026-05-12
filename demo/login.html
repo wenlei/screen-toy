@@ -29,10 +29,12 @@ var APP_ID = '241';
 var REDIRECT_URI = 'https://wenlei.github.io/screen-toy/callback';
 
 function login() {
+  var state = 'screen_toy_' + Date.now();
   window.location.href = 'https://openapi.zhihu.com/authorize?' +
     'redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
     '&app_id=' + APP_ID +
-    '&response_type=code';
+    '&response_type=code' +
+    '&state=' + state;
 }
 </script>
 </body>
