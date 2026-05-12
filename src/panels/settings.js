@@ -2,7 +2,7 @@
   console.log('[Settings] Script starting...');
   var cfg = window.__CONFIG || {};
   var defaults = {
-    agentApiKey:   '',
+    agentApiKey:   'glywLStqwOGbkLNpO1f3ODZ0EACBTH3X',
     agentEndpoint: 'https://developer.zhihu.com/v1/chat/completions',
     agentModel:    'zhida-fast-1p5',
     agentProvider: 'zhihu',
