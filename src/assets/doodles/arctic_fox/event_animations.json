@@ -8,6 +8,13 @@
       }
     },
     {
+      "date": "05-10",
+      "animations": {
+        "enter": "mothers_day_enter_sheet.png",
+        "quit": "quit_sheet.png"
+      }
+    },
+    {
       "date": "05-11",
       "animations": {
         "quit": "quit2_sheet.png"

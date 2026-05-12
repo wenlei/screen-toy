@@ -316,3 +316,6 @@ knowledge.saveOrUpdateConversation({ id: cid, ..., messages: allMessages })
 | 11 | 热榜不保存到 Session | ✅ 已修复 — saveHotlistToHistory 从 Settings bridge 移至 Dialog bridge |
 | 12 | 加载历史 Session 后 MBTI 风格残留 | ✅ 已修复 — conversation-load 设 agent = null 强制重建 |
 | 13 | 热榜不更新 Agent 历史 | ✅ 已修复 — 新增 pushMessage() 方法同步 agent 内部历史 |
+| 14 | 流式响应 reasoning_content 未累积 → 空响应 | ✅ 已修复 — agent.ts 同步捕获两种 delta |
+| 15 | 渲染层引用来源未切分 | ✅ 已修复 — stripCitations() 仅影响显示层 |
+| 16 | MBTI 默认值 HTML/JS/main 不一致 | ✅ 已修复 — 统一为 ENTP |

@@ -70,8 +70,8 @@ const currentSettings = {
   searchType: 'zhihu' as string,
   mbtiEI: 'E' as string,
   mbtiSN: 'N' as string,
-  mbtiTF: 'F' as string,
-  mbtiJP: 'J' as string,
+  mbtiTF: 'T' as string,
+  mbtiJP: 'P' as string,
   // Bubble layout
   bubbleScale:       0.85 as number,
   bubbleCanvasTopPad: 55 as number,
@@ -621,6 +621,42 @@ ipcMain.handle('zhihu-hot-list', async () => {
     return { data: result, error: null };
   } catch (e: any) {
     return { data: [], error: e.message || '获取热榜失败' };
+  }
+});
+
+// ---- Bookmark message to conversation ----
+ipcMain.on('dialog-bookmark', (_event, content: string) => {
+  if (!currentConversationId) {
+    currentConversationId = Date.now().toString(36);
+    if (dialogWin && !dialogWin.isDestroyed()) {
+      dialogWin.webContents.send('dialog-conversation-id', {
+        id: currentConversationId,
+        mbtiEI: (currentSettings as any).mbtiEI,
+        mbtiSN: (currentSettings as any).mbtiSN,
+        mbtiTF: (currentSettings as any).mbtiTF,
+        mbtiJP: (currentSettings as any).mbtiJP,
+      });
+    }
+  }
+  var existing = knowledge.getConversationById(currentConversationId);
+  var allMessages = existing ? existing.messages.slice() : [];
+  allMessages.push({ role: 'user', content: '📚 收藏' });
+  allMessages.push({ role: 'assistant', content: content });
+  knowledge.saveOrUpdateConversation({
+    id: currentConversationId,
+    date: new Date().toISOString(),
+    provider: (currentSettings.agentProvider as any) || 'zhihu',
+    messages: allMessages,
+    mbtiEI: (currentSettings as any).mbtiEI,
+    mbtiSN: (currentSettings as any).mbtiSN,
+    mbtiTF: (currentSettings as any).mbtiTF,
+    mbtiJP: (currentSettings as any).mbtiJP,
+    agentModel: currentSettings.agentModel,
+    searchType: currentSettings.searchType,
+    enableDirectAnswer: currentSettings.enableDirectAnswer,
+  });
+  if (dialogWin && !dialogWin.isDestroyed()) {
+    dialogWin.webContents.send('refresh-conversation-list');
   }
 });
 

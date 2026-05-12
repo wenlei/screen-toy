@@ -179,6 +179,19 @@
       });
       footer.appendChild(copyBtn);
 
+      var saveBtn = document.createElement('button');
+      saveBtn.className = 'save-btn';
+      saveBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">bookmark_border</span>';
+      saveBtn.title = '收藏';
+      saveBtn.addEventListener('click', function () {
+        if (window.screenToyDialog && window.screenToyDialog.bookmarkMessage) {
+          window.screenToyDialog.bookmarkMessage(text);
+          saveBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">bookmark</span>';
+          saveBtn.style.color = '#FF9500';
+        }
+      });
+      footer.appendChild(saveBtn);
+
       container.appendChild(div);
       container.appendChild(footer);
     } else if (type === 'user') {

@@ -149,7 +149,7 @@ renderer.js (运行时覆盖 EnterSprite.draw / QuitSprite.draw)
 | `resource_groups` | 可复用的命名动画组，多个日期共享 |
 | 优先级 | `animations` > `group` |
 
-详细示例见 `src/assets/doodles/arctic_fox/animations.md`。
+详细示例见 `animations.md`。
 
 ## 交互
 

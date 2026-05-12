@@ -174,6 +174,9 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
     ipcRenderer.removeAllListeners('dialog-selection-query');
     ipcRenderer.on('dialog-selection-query', (_event, text: string) => callback(text));
   },
+  bookmarkMessage: (content: string) => {
+    ipcRenderer.send('dialog-bookmark', content);
+  },
 });
 
 contextBridge.exposeInMainWorld('bubbleAPI', {

@@ -57,8 +57,8 @@
 | `hotListLimit` | int | 10 | 热榜条目数 (1-30) |
 | `mbtiEI` | string | 'E' | MBTI 表达方式 |
 | `mbtiSN` | string | 'N' | MBTI 关注点 |
-| `mbtiTF` | string | 'F' | MBTI 决策方式 |
-| `mbtiJP` | string | 'J' | MBTI 风格 |
+| `mbtiTF` | string | 'T' | MBTI 决策方式 |
+| `mbtiJP` | string | 'P' | MBTI 风格 |
 | `menuApps` | array | [] | 应用菜单列表 |
 
 ## NBTI 人格风格
@@ -72,7 +72,7 @@
 | 决策方式 | T 思考 / F 情感 | 逻辑分析 vs 温暖共情 |
 | 风格 | J 判断 / P 感知 | 有条理 vs 灵活随性 |
 
-解释文字根据选中选项动态变化，标题显示组合类型名（如 `ENFP 竞选者`）。
+解释文字根据选中选项动态变化，标题显示组合类型名（如 `ENTP 辩论者`）。
 
 ## API Key 锁定
 

@@ -1,6 +1,6 @@
 # 日期驱动动画配置
 
-配置文件：`event_animations.json`
+配置文件：`src/assets/doodles/arctic_fox/event_animations.json`
 
 ## 字段说明
 
@@ -32,7 +32,7 @@
 ## 素材规范
 
 - 精灵图格式：PNG，6 列 × 4 行 = 24 帧，每帧 256×256
-- 素材路径：`src/assets/doodles/arctic_fox/`（与配置文件同目录）
+- 素材路径：`src/assets/doodles/arctic_fox/`
 
 ## 示例
 
