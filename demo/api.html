@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Toy — Moltbook API Demo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font:14px/1.5 -apple-system, sans-serif; background:#F5F5F7; padding:24px; }
+  .card { background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.08); max-width:600px; margin:0 auto 20px; }
+  h2 { font-size:16px; margin-bottom:12px; }
+  .result { background:#1C1C1E; color:#30D158; padding:12px 16px; border-radius:8px; font:12px 'SF Mono', monospace; white-space:pre-wrap; max-height:400px; overflow-y:auto; margin-bottom:8px; }
+  .error { color:#FF3B30; font-size:13px; }
+  .info { color:#6E6E73; font-size:13px; margin-bottom:4px; }
+  .btn { display:inline-block; background:#007AFF; color:#fff; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:600; border:none; cursor:pointer; margin-right:8px; }
+  .btn:hover { opacity:0.9; }
+  code { background:#F2F2F7; padding:2px 6px; border-radius:4px; font-size:12px; }
+  label { display:block; font-size:13px; color:#6E6E73; margin-bottom:4px; }
+  input { width:100%; padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:13px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Moltbook API 鉴权测试</h2>
+  <div class="info">app_key = 用户 token · app_secret = 应用密钥</div>
+  <br>
+  <label>app_key（你的知乎用户 token）</label>
+  <input id="appKey" value="hu-fei-90">
+  <label>app_secret（应用密钥）</label>
+  <input id="appSecret" value="6e7e993d66504acb8ab7c4786ed00355" type="password">
+  <br>
+  <button class="btn" onclick="testAuth()">🔍 测试鉴权</button>
+  <button class="btn" onclick="testUserInfo()" style="background:#34C759">👤 获取用户信息</button>
+  <div class="result" id="output">等待测试...</div>
+</div>
+
+<script>
+var DOMAIN = 'https://openapi.zhihu.com';
+
+// HMAC-SHA256 签名
+async function signRequest(appKey, appSecret) {
+  var timestamp = String(Math.floor(Date.now() / 1000));
+  var logID = 'req_' + Date.now();
+  var extraInfo = '';
+  var signStr = 'app_key:' + appKey + '|ts:' + timestamp + '|logid:' + logID + '|extra_info:' + extraInfo;
+
+  var key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(appSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  var sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signStr));
+  var sign = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+  return {
+    'X-App-Key': appKey,
+    'X-Timestamp': timestamp,
+    'X-Log-Id': logID,
+    'X-Sign': sign,
+    'X-Extra-Info': extraInfo,
+    'Content-Type': 'application/json',
+  };
+}
+
+function testAuth() {
+  var appKey = document.getElementById('appKey').value;
+  var appSecret = document.getElementById('appSecret').value;
+  var out = document.getElementById('output');
+  out.textContent = '签名中...';
+
+  signRequest(appKey, appSecret).then(function (headers) {
+    out.textContent = '请求头：\n' + Object.entries(headers).map(function ([k,v]) { return k + ': ' + v; }).join('\n');
+    out.textContent += '\n\n✅ 签名生成成功';
+  }).catch(function (err) {
+    out.textContent = '❌ 签名失败：' + err.message;
+  });
+}
+
+function testUserInfo() {
+  var appKey = document.getElementById('appKey').value;
+  var appSecret = document.getElementById('appSecret').value;
+  var out = document.getElementById('output');
+  out.textContent = '请求中...';
+
+  signRequest(appKey, appSecret).then(function (headers) {
+    return fetch(DOMAIN + '/openapi/user', { method: 'GET', headers: headers });
+  }).then(function (res) { return res.json(); })
+  .then(function (data) {
+    out.textContent = JSON.stringify(data, null, 2);
+  }).catch(function (err) {
+    out.textContent = '❌ 请求失败：' + err.message + '\n可能被 CORS 阻止';
+  });
+}
+</script>
+</body>
+</html>

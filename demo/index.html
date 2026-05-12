@@ -1,103 +1,1123 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Screen Toy — Moltbook API Demo</title>
+<title>桌伴 — 刘看山的桌面生活</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font:14px/1.5 -apple-system, sans-serif; background:#F5F5F7; padding:24px; }
-  .card { background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.08); max-width:600px; margin:0 auto 20px; }
-  h2 { font-size:16px; margin-bottom:12px; }
-  .result { background:#1C1C1E; color:#30D158; padding:12px 16px; border-radius:8px; font:12px 'SF Mono', monospace; white-space:pre-wrap; max-height:400px; overflow-y:auto; margin-bottom:8px; }
-  .error { color:#FF3B30; font-size:13px; }
-  .info { color:#6E6E73; font-size:13px; margin-bottom:4px; }
-  .btn { display:inline-block; background:#007AFF; color:#fff; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:600; border:none; cursor:pointer; margin-right:8px; }
-  .btn:hover { opacity:0.9; }
-  code { background:#F2F2F7; padding:2px 6px; border-radius:4px; font-size:12px; }
-  label { display:block; font-size:13px; color:#6E6E73; margin-bottom:4px; }
-  input { width:100%; padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:13px; margin-bottom:12px; }
+/* ── Reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Caveat', 'STHeiti', 'PingFang SC', cursive, sans-serif;
+  background: #fafaf8;
+  color: #2a2520;
+  overflow-x: hidden;
+}
+
+/* ── SVG sketch filter ──────────────────────────────── */
+.sketch {
+  filter: url(#sketch);
+}
+
+/* ── Hand-drawn border mixin via box-shadow ─────────── */
+.card {
+  position: relative;
+  background: #fff;
+  border-radius: 12px 8px 14px 10px / 10px 14px 8px 12px;
+  border: 2.5px solid #2a2520;
+  box-shadow: 3px 4px 0 #2a2520;
+  padding: 28px 32px;
+}
+
+/* ── Nav ─────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 48px;
+  background: rgba(250,250,248,0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid rgba(42,37,32,0.12);
+}
+.nav-logo {
+  font-size: 26px; font-weight: 700; color: #2a2520;
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-logo span { color: #d05a28; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a {
+  font-size: 20px; color: #5a5248; text-decoration: none;
+  transition: color .2s;
+}
+.nav-links a:hover { color: #d05a28; }
+.nav-cta {
+  font-size: 20px; font-weight: 700;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 10px 24px;
+  border-radius: 8px 6px 10px 7px / 6px 10px 7px 9px;
+  box-shadow: 3px 3px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+}
+.nav-cta:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 #d05a28; }
+.nav-cta:active { transform: translate(1px,1px); box-shadow: 2px 2px 0 #d05a28; }
+
+/* ── Hero ────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 100px 80px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background-image: url('https://raw.githubusercontent.com/placeholder/placeholder/main/bg.png');
+  background-size: cover;
+  background-position: center bottom;
+  opacity: 0.18;
+  pointer-events: none;
+}
+/* Hand-drawn scribble lines as decorative bg */
+.hero-doodle {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.hero-left { position: relative; z-index: 2; }
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 20px; color: #8a7e6e;
+  border-bottom: 2px wavy #d05a28;
+  margin-bottom: 20px;
+}
+.hero-title {
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1.2;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.hero-title .accent { color: #d05a28; }
+.hero-sub {
+  font-size: clamp(22px, 2.5vw, 32px);
+  color: #5a5248;
+  margin-bottom: 36px;
+  line-height: 1.5;
+}
+.hero-sub strong { color: #2a2520; }
+.hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  font-family: inherit; font-size: 22px; font-weight: 700;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 14px 32px;
+  border-radius: 10px 7px 12px 8px / 7px 12px 8px 11px;
+  box-shadow: 4px 4px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #d05a28; }
+.btn-secondary {
+  font-family: inherit; font-size: 22px;
+  background: transparent; color: #2a2520;
+  border: 2.5px solid #2a2520; cursor: pointer;
+  padding: 14px 32px;
+  border-radius: 10px 7px 12px 8px / 7px 12px 8px 11px;
+  box-shadow: 4px 4px 0 rgba(42,37,32,0.15);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-secondary:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 rgba(42,37,32,0.2); }
+
+/* Hero fox illustration */
+.hero-right {
+  position: relative; z-index: 2;
+  display: flex; justify-content: center; align-items: flex-end;
+}
+.hero-fox-wrap {
+  position: relative;
+  animation: float 4s ease-in-out infinite;
+  overflow: visible;
+}
+.hero-sat {
+  position: absolute;
+  background: rgba(255,255,255,0.92);
+  border: 2.5px solid #2a2520;
+  border-radius: 12px 10px 14px 10px / 10px 14px 10px 12px;
+  box-shadow: 3px 3px 0 rgba(42,37,32,0.13);
+  overflow: hidden;
+  animation: sat-float var(--fd-dur, 3.8s) ease-in-out infinite;
+  animation-delay: var(--fd, 0s);
+  z-index: 3;
+}
+.hero-sat-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(42,37,32,0.82); color: #fafaf8;
+  font-size: 11px; font-weight: 700;
+  text-align: center; padding: 2px 0;
+  letter-spacing: 0.05em;
+}
+@keyframes sat-float {
+  0%,100% { transform: translateY(0px) rotate(var(--rot0, -1.5deg)); }
+  50%      { transform: translateY(-9px) rotate(var(--rot1, 1.5deg)); }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0px) rotate(-1deg); }
+  50%      { transform: translateY(-14px) rotate(1deg); }
+}
+.hero-fox {
+  width: clamp(260px, 30vw, 420px);
+  image-rendering: pixelated;
+  filter: drop-shadow(6px 12px 16px rgba(42,37,32,0.18));
+}
+.hero-bubble {
+  position: absolute; top: -64px; left: calc(50% - 100px); transform: translateX(-20%);
+  width: 218px; height: 142px;
+  background: url('assets/speech_bubble.png') no-repeat center/contain;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 24px 20px 16px;
+  font-size: 19px; font-weight: 700; color: #2a2520;
+  text-align: center; line-height: 1.4;
+  animation: bubble-pop 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bubble-pop {
+  0%,100% { transform: scale(1) rotate(-2deg); }
+  50%      { transform: scale(1.05) rotate(1deg); }
+}
+.hero-shadow {
+  position: absolute; bottom: -20px; left: 50%;
+  transform: translateX(-50%);
+  width: 160px; height: 20px;
+  background: radial-gradient(ellipse, rgba(42,37,32,0.22) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: shadow-pulse 4s ease-in-out infinite;
+}
+@keyframes shadow-pulse {
+  0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.22; }
+  50%      { transform: translateX(-50%) scaleX(0.75); opacity: 0.1; }
+}
+
+/* ── Section base ─────────────────────────────────── */
+section { padding: 96px 80px; }
+.section-label {
+  font-size: 18px; color: #d05a28; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(32px, 3.5vw, 52px); font-weight: 700;
+  margin-bottom: 16px; line-height: 1.2;
+}
+.section-sub { font-size: 22px; color: #6a6258; max-width: 560px; line-height: 1.6; }
+
+/* ── Features ────────────────────────────────────── */
+#features { background: #f2f2ef; }
+#features .inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  margin-top: 56px;
+}
+.feat-card {
+  background: #fafaf8;
+  border: 2.5px solid #2a2520;
+  border-radius: 14px 10px 16px 12px / 10px 16px 12px 14px;
+  box-shadow: 4px 5px 0 rgba(42,37,32,0.12);
+  padding: 32px 28px;
+  transition: transform .2s, box-shadow .2s;
+}
+.feat-card:hover {
+  transform: translate(-3px,-3px);
+  box-shadow: 7px 8px 0 rgba(42,37,32,0.15);
+}
+.feat-icon {
+  width: 64px; height: 64px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.feat-icon svg { width: 100%; height: 100%; }
+.feat-title { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+.feat-desc { font-size: 20px; color: #6a6258; line-height: 1.55; }
+
+/* ── Demo strip ──────────────────────────────────── */
+#demo {
+  background: #fafaf8;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+/* ── Anim ticker ─────────────────────────────────── */
+#animTicker {
+  padding: 0; overflow: hidden;
+  background: #f7f5f1;
+  border-top: 1.5px solid rgba(42,37,32,0.07);
+  border-bottom: 1.5px solid rgba(42,37,32,0.07);
+}
+.ticker-track {
+  display: flex; align-items: flex-end;
+  gap: 0; padding: 18px 0 14px;
+  width: max-content;
+  animation: ticker-scroll 28s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.tk-sprite {
+  flex-shrink: 0;
+  filter: drop-shadow(2px 8px 10px rgba(42,37,32,0.13));
+  margin-right: 32px;
+}
+.tk-sprite canvas { display: block; }
+
+/* ── Quick access ────────────────────────────────── */
+#quickaccess { background: #faf8f4; }
+.qa-layout {
+  display: flex; gap: 72px; align-items: center;
+  flex-wrap: wrap;
+}
+.qa-copy { flex: 1 1 340px; }
+.qa-title { font-size: clamp(28px,4vw,44px); font-weight: 900; color: #2a2520; line-height: 1.25; margin: 12px 0 20px; }
+.qa-text { font-size: 18px; color: #5a5248; line-height: 1.75; margin: 0; }
+.qa-apps { flex: 0 1 360px; }
+.qa-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 14px;
+  margin-bottom: 16px;
+}
+.qa-app {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: #fff; border: 2px solid #e8e4dc;
+  border-radius: 14px 12px 16px 12px / 12px 16px 12px 14px;
+  padding: 14px 8px 10px;
+  box-shadow: 2px 2px 0 rgba(42,37,32,0.07);
+  transition: transform .15s, box-shadow .15s;
+  cursor: default;
+}
+.qa-app:hover { transform: translateY(-3px); box-shadow: 3px 5px 0 rgba(42,37,32,0.12); }
+.qa-custom { border: 2px dashed #c0b8a8; background: #f7f5f1; color: #a09080; }
+.qa-custom .qa-name { color: #a09080; }
+.qa-icon { font-size: 28px; line-height: 1; }
+.qa-name { font-size: 13px; color: #6a6058; font-weight: 600; }
+.qa-hint { font-size: 14px; color: #a09080; text-align: center; }
+
+/* ── Comic strip ─────────────────────────────────── */
+.comic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  max-width: 860px;
+  margin: 52px auto 0;
+  border: 3px solid #1a1714;
+  box-shadow: 6px 6px 0 #1a1714;
+}
+@media (max-width: 700px) { .comic-grid { grid-template-columns: 1fr 1fr; } }
+.comic-panel {
+  background: #fff;
+  border-right: 2.5px solid #1a1714;
+  position: relative;
+  overflow: hidden;
+  transition: background .2s;
+}
+.comic-panel:last-child { border-right: none; }
+.comic-panel:hover { background: #fffdf8; }
+.panel-num {
+  position: absolute; top: 7px; left: 9px; z-index: 2;
+  font-size: 11px; font-weight: 900; font-family: monospace;
+  background: #1a1714; color: #fafaf8;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+.panel-body {
+  display: flex; align-items: center; justify-content: center;
+  padding: 36px 12px 12px;
+  min-height: 180px; position: relative;
+}
+.panel-bubble {
+  position: absolute; top: 10px; left: 28px; right: 8px;
+  font-size: 13px; font-weight: 700; color: #1a1714;
+  line-height: 1.45; min-height: 28px;
+  transition: opacity .3s;
+}
+.sprite-preview {
+  width: 120px; height: 120px;
+  image-rendering: pixelated;
+  overflow: hidden; position: relative;
+}
+.sprite-preview canvas { position: absolute; top: 0; left: 0; }
+.panel-caption {
+  border-top: 2.5px solid #1a1714;
+  padding: 6px 10px;
+  font-size: 14px; font-weight: 800;
+  background: #1a1714; color: #fafaf8;
+  letter-spacing: 0.04em; text-align: center;
+}
+
+/* legacy */
+.demo-strip { display: none; }
+.demo-frame { display: none; }
+
+/* ── Quote ───────────────────────────────────────── */
+#quote {
+  background: #2a2520;
+  color: #faf7f0;
+  text-align: center;
+  padding: 80px 80px;
+}
+#quote .q-text {
+  font-size: clamp(28px, 3.5vw, 52px);
+  font-weight: 700; line-height: 1.4; max-width: 800px; margin: 0 auto 16px;
+}
+#quote .q-text .accent { color: #e8874a; }
+#quote .q-attr { font-size: 20px; color: #a09080; }
+
+/* ── Agent ───────────────────────────────────────── */
+#agent { background: #faf8f4; }
+.agent-layout {
+  display: flex; gap: 64px; align-items: flex-start; margin-top: 56px;
+  flex-wrap: wrap;
+}
+.agent-copy { flex: 1 1 380px; display: flex; flex-direction: column; gap: 36px; }
+.agent-block { display: flex; gap: 20px; align-items: flex-start; }
+.agent-num {
+  font-size: 13px; font-weight: 700; color: #e8874a;
+  border: 2px solid #e8874a; border-radius: 50%;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px; letter-spacing: 0;
+}
+.agent-heading { font-size: 22px; font-weight: 700; color: #2a2520; margin-bottom: 8px; }
+.agent-text { font-size: 18px; color: #5a5248; line-height: 1.75; margin: 0; }
+.agent-bubbles { flex: 0 1 340px; display: flex; flex-direction: column; gap: 16px; padding-top: 8px; }
+.ab-question {
+  align-self: flex-end;
+  background: #2a2520; color: #faf8f4;
+  padding: 12px 20px; border-radius: 18px 18px 4px 18px;
+  font-size: 18px; max-width: 260px;
+  box-shadow: 2px 3px 0 rgba(42,37,32,0.2);
+}
+.ab-answer {
+  align-self: flex-start;
+  background: #fff; color: #2a2520;
+  padding: 14px 18px; border-radius: 4px 18px 18px 18px;
+  font-size: 17px; line-height: 1.6; max-width: 300px;
+  border: 2px solid #e8e4dc;
+  box-shadow: 2px 3px 0 rgba(42,37,32,0.08);
+}
+.ab-tag {
+  display: inline-block; font-size: 12px; font-weight: 700;
+  background: #f0ebe3; color: #8a7060; border-radius: 4px;
+  padding: 1px 6px; margin-right: 6px; vertical-align: middle;
+}
+.ab-a1 { transform: rotate(-0.5deg); }
+.ab-a2 { transform: rotate(0.8deg); }
+.ab-a3 { transform: rotate(-0.3deg); }
+
+/* ── Personality ─────────────────────────────────── */
+#personality { background: #f2f2ef; }
+.mbti-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 14px;
+}
+@media (max-width: 900px) { .mbti-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 500px) { .mbti-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; } }
+.mbti-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: #fafaf8;
+  border: 2px solid #e0dcd4;
+  border-radius: 16px 14px 18px 14px / 14px 18px 14px 16px;
+  padding: 14px 8px 10px;
+  box-shadow: 2px 2px 0 rgba(42,37,32,0.08);
+  transition: transform .15s, box-shadow .15s;
+  cursor: default;
+}
+.mbti-chip:hover { transform: translateY(-3px); box-shadow: 3px 5px 0 rgba(42,37,32,0.13); }
+.mbti-chip.active { background: #fff4ee; border-color: #d05a28; box-shadow: 2px 2px 0 #d05a28; }
+.mbti-avatar {
+  width: 56px; height: 56px;
+  object-fit: contain;
+  display: block;
+}
+.mbti-code { font-size: 12px; font-weight: 800; color: #2a2520; letter-spacing: 0.5px; }
+.mbti-name { font-size: 11px; color: #8a7f74; font-weight: 500; }
+.mbti-chip.active .mbti-code { color: #d05a28; }
+.mbti-chip.active .mbti-name { color: #c04818; }
+.personality-desc {
+  margin-top: 36px;
+  font-size: 22px; color: #5a5248; line-height: 1.6; max-width: 600px;
+}
+
+/* ── Install Guide ───────────────────────────────── */
+.install-guide {
+  max-width: 640px; margin: 48px auto 0;
+  background: #fff; border: 2px solid #e8e4dc;
+  border-radius: 16px 18px 14px 18px / 18px 14px 18px 16px;
+  padding: 32px 36px;
+  box-shadow: 3px 4px 0 rgba(42,37,32,0.07);
+  text-align: left;
+}
+.install-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 18px; font-weight: 700; color: #2a2520; margin-bottom: 12px;
+}
+.install-sub {
+  font-size: 16px; color: #6a6058; line-height: 1.7; margin: 0 0 24px;
+}
+.install-steps { display: flex; flex-direction: column; gap: 16px; }
+.install-step { display: flex; gap: 14px; align-items: flex-start; }
+.step-num {
+  flex-shrink: 0; width: 26px; height: 26px;
+  background: #2a2520; color: #fafaf8;
+  border-radius: 50%; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.step-text { font-size: 16px; color: #3a3530; line-height: 1.65; }
+.step-text code {
+  background: #f0ece6; border-radius: 4px;
+  padding: 1px 6px; font-size: 14px; font-family: monospace;
+}
+.install-tip {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px dashed #ddd8d0;
+  font-size: 14px; color: #8a8078; font-family: monospace;
+}
+.install-tip svg { flex-shrink: 0; color: #76b97a; }
+
+/* ── Download ────────────────────────────────────── */
+#download {
+  text-align: center;
+  background: #fafaf8;
+  padding: 96px 80px 80px;
+}
+.dl-platforms { display: flex; gap: 20px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+.dl-btn {
+  font-family: inherit; font-size: 22px; font-weight: 700;
+  display: flex; align-items: center; gap: 12px;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 16px 36px;
+  border-radius: 10px 7px 12px 8px;
+  box-shadow: 4px 4px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+  text-decoration: none;
+}
+.dl-btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #d05a28; }
+.dl-btn.secondary {
+  background: transparent; color: #2a2520;
+  border: 2.5px solid #2a2520;
+  box-shadow: 4px 4px 0 rgba(42,37,32,0.15);
+}
+.dl-note { margin-top: 20px; font-size: 18px; color: #a09080; }
+
+/* ── Footer ──────────────────────────────────────── */
+footer {
+  border-top: 2px solid rgba(42,37,32,0.12);
+  padding: 32px 80px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 18px; color: #a09080;
+  flex-wrap: wrap; gap: 12px;
+}
+footer a { color: #a09080; text-decoration: none; }
+footer a:hover { color: #d05a28; }
+
+/* ── Decorative hand-drawn underline ─────────────── */
+.squiggle {
+  position: relative; display: inline-block;
+}
+.squiggle::after {
+  content: '';
+  position: absolute; bottom: -4px; left: 0; right: 0; height: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='4'%3E%3Cpath d='M0 2 Q5 0 10 2 Q15 4 20 2 Q25 0 30 2 Q35 4 40 2' stroke='%23d05a28' stroke-width='2' fill='none'/%3E%3C/svg%3E") repeat-x;
+}
+
+/* ── Scroll reveal ───────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; padding: 100px 32px 48px; text-align: center; }
+  .hero-right { margin-top: 40px; }
+  .hero-actions { justify-content: center; }
+  section { padding: 72px 32px; }
+  nav { padding: 14px 24px; }
+  .nav-links { display: none; }
+  footer { padding: 24px 32px; }
+  #quote { padding: 60px 32px; }
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <h2>Moltbook API 鉴权测试</h2>
-  <div class="info">app_key = 用户 token · app_secret = 应用密钥</div>
-  <br>
-  <label>app_key（你的知乎用户 token）</label>
-  <input id="appKey" value="hu-fei-90">
-  <label>app_secret（应用密钥）</label>
-  <input id="appSecret" value="6e7e993d66504acb8ab7c4786ed00355" type="password">
-  <br>
-  <button class="btn" onclick="testAuth()">🔍 测试鉴权</button>
-  <button class="btn" onclick="testUserInfo()" style="background:#34C759">👤 获取用户信息</button>
-  <div class="result" id="output">等待测试...</div>
-</div>
+
+<!-- SVG filter for hand-drawn look -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo"><img src="assets/icon/logo.png" alt="logo" style="width:40px;height:40px;object-fit:contain;display:block;"><span>桌</span>伴</div>
+   <div class="nav-links">
+     <a href="#features">功能</a>
+     <a href="#demo">动画</a>
+     <a href="#personality">性格</a>
+     <a href="#download">下载</a>
+     <a href="login.html">🔑 登录</a>
+     <a href="api.html">⚙ API</a>
+   </div>
+  <button class="nav-cta" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">免费下载</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <!-- Decorative background scribbles -->
+  <svg class="hero-doodle" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+    <g stroke="#d05a28" stroke-width="1.5" fill="none" opacity="0.07" stroke-linecap="round">
+      <path d="M50 120 Q120 80 200 130 Q280 180 350 110"/>
+      <path d="M900 60 Q970 30 1050 80 Q1120 120 1180 70"/>
+      <path d="M1050 600 Q1100 560 1150 600 Q1180 630 1160 660"/>
+      <circle cx="80" cy="600" r="40" opacity="0.5"/>
+      <circle cx="1120" cy="300" r="25" opacity="0.4"/>
+      <path d="M600 750 Q650 730 700 750 Q740 768 780 750"/>
+      <!-- Stars -->
+      <g opacity="0.6">
+        <path d="M420 80 L424 92 L436 92 L426 100 L430 112 L420 104 L410 112 L414 100 L404 92 L416 92 Z"/>
+        <path d="M880 180 L882 188 L890 188 L884 193 L886 201 L880 197 L874 201 L876 193 L870 188 L878 188 Z"/>
+      </g>
+    </g>
+    <!-- Wavy lines -->
+    <g stroke="#2a2520" stroke-width="1" fill="none" opacity="0.04">
+      <path d="M0 400 Q150 380 300 400 Q450 420 600 400 Q750 380 900 400 Q1050 420 1200 400"/>
+      <path d="M0 420 Q150 400 300 420 Q450 440 600 420 Q750 400 900 420 Q1050 440 1200 420"/>
+    </g>
+  </svg>
+
+  <div class="hero-left">
+    <div class="hero-eyebrow">macOS 桌面伴侣 · 知乎 Hackathon</div>
+    <h1 class="hero-title">
+      把 AI <span class="accent">养</span>在桌面上，<br>
+      看 TA 陪你<span class="squiggle">过日子</span>。
+    </h1>
+    <p class="hero-sub">
+      <strong>Agent 的能力，同伴的温度。</strong><br>
+      问 TA 问题，也可以只看 TA 发呆。
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">⬇ 免费下载</button>
+      <button class="btn-secondary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">看看 TA 怎么玩 →</button>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-fox-wrap">
+      <div class="hero-bubble">今天也要好好的！✨</div>
+      <div id="heroCanvas" style="width:420px;height:420px;position:relative;"></div>
+      <div class="hero-shadow"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-label">为什么是 TA</div>
+  <h2 class="section-title">不只是工具，是同路人</h2>
+  <p class="section-sub">大多数 AI 住在对话框里。TA 住在你屏幕上。</p>
+  <div class="inner">
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="32" cy="22" r="12"/>
+          <path d="M12 54c0-11 9-18 20-18s20 7 20 18"/>
+          <path d="M44 14c3 2 5 5 5 9" stroke="#d05a28"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">16 种性格</h3>
+      <p class="feat-desc">基于 MBTI 构造 16 种人格风格。同一个问题，不同性格的 TA 给你不同的回答。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="18" width="44" height="30" rx="4"/>
+          <path d="M22 18V14M42 18V14"/>
+          <path d="M10 28h44" stroke="#d05a28"/>
+          <circle cx="22" cy="36" r="3" fill="#d05a28" stroke="none"/>
+          <circle cx="32" cy="36" r="3" fill="#2a2520" stroke="none"/>
+          <circle cx="42" cy="36" r="3" fill="#2a2520" stroke="none"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">节日动画</h3>
+      <p class="feat-desc">端午节抱粽子入场，儿童节有专属问候。日期自动触发，是送给那天打开电脑的人的惊喜。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M32 10 L38 24 L54 24 L42 34 L46 48 L32 40 L18 48 L22 34 L10 24 L26 24 Z" stroke="#d05a28"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">知乎 Agent</h3>
+      <p class="feat-desc">接入知乎开放平台，亿级知识语料。问 TA 任何问题，TA 会用自己的性格告诉你。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M32 54 C20 54 10 46 10 34 C10 22 20 10 32 10"/>
+          <path d="M32 10 C44 10 54 22 54 34 C54 46 44 54 32 54" stroke="#d05a28"/>
+          <path d="M32 10 L32 54M10 34 L54 34"/>
+          <path d="M16 20 Q32 28 48 20M16 48 Q32 40 48 48"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">随手可及</h3>
+      <p class="feat-desc">蹲在屏幕角落，不打扰你工作。想聊就点，感到烦了就拖到角落——TA 会自己睡着。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Animation ticker -->
+<section id="animTicker">
+  <div class="ticker-track" id="tickerTrack"></div>
+</section>
+
+<!-- Quick access -->
+<section id="quickaccess">
+  <div class="qa-layout">
+    <div class="qa-copy reveal">
+      <div class="section-label">有资格待在这里</div>
+      <h2 class="qa-title">单击 TA，<span class="accent">弹出快捷菜单</span></h2>
+      <p class="qa-text">桌面宠物不只是用来看的。单击刘看山，弹出快速启动菜单——一键打开常用应用，少点几步。</p>
+      <p class="qa-text" style="margin-top:12px">感到烦了，把 TA 拖到屏幕角落，TA 会自己睡着。菜单里的应用可以<strong>按习惯自由配置</strong>，用什么就放什么。</p>
+    </div>
+    <div class="qa-apps reveal">
+      <div class="qa-grid">
+        <div class="qa-app"><div class="qa-icon">🧮</div><div class="qa-name">计算器</div></div>
+        <div class="qa-app"><div class="qa-icon">📝</div><div class="qa-name">备忘录</div></div>
+        <div class="qa-app"><div class="qa-icon">📬</div><div class="qa-name">邮件</div></div>
+        <div class="qa-app"><div class="qa-icon">📅</div><div class="qa-name">日历</div></div>
+        <div class="qa-app"><div class="qa-icon">🌐</div><div class="qa-name">浏览器</div></div>
+        <div class="qa-app qa-custom"><div class="qa-icon">＋</div><div class="qa-name">自定义</div></div>
+      </div>
+      <div class="qa-hint">↑ 单击刘看山即可弹出</div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo -->
+<section id="demo">
+  <div class="section-label">TA 的日常</div>
+  <h2 class="section-title">TA 的<span class="squiggle">生活独白</span></h2>
+  <p class="section-sub">TA 不说大道理。只是把心里话，悄悄说给你听。</p>
+  <div class="comic-grid">
+    <div class="comic-panel reveal">
+      <div class="panel-num">①</div>
+      <div class="panel-body">
+        <div class="panel-bubble" id="bub0">啊...啊...</div>
+        <div class="sprite-preview" id="sp0"></div>
+      </div>
+      <div class="panel-caption">打喷嚏</div>
+    </div>
+    <div class="comic-panel reveal">
+      <div class="panel-num">②</div>
+      <div class="panel-body">
+        <div class="panel-bubble" id="bub1">哎呀，我拧巴了！</div>
+        <div class="sprite-preview" id="sp1"></div>
+      </div>
+      <div class="panel-caption">别纠结</div>
+    </div>
+    <div class="comic-panel reveal">
+      <div class="panel-num">③</div>
+      <div class="panel-body">
+        <div class="panel-bubble" id="bub2">花开就会花落</div>
+        <div class="sprite-preview" id="sp2"></div>
+      </div>
+      <div class="panel-caption">花开花落</div>
+    </div>
+    <div class="comic-panel reveal">
+      <div class="panel-num">④</div>
+      <div class="panel-body">
+        <div class="panel-bubble" id="bub3">...</div>
+        <div class="sprite-preview" id="sp3"></div>
+      </div>
+      <div class="panel-caption">听了个笑话</div>
+    </div>
+  </div>
+  <p style="margin-top:36px; font-size:18px; color:#a09080;">以上仅为部分动画，完整体验需要下载应用。</p>
+</section>
+
+<!-- Agent -->
+<section id="agent">
+  <div class="section-label">TA 在想什么</div>
+  <h2 class="section-title">亿级知识，<span class="squiggle">有性格地</span>说给你听</h2>
+  <p class="section-sub">TA 不只是一只会动的狐狸。单击 TA，TA 会打开一扇通向知乎庞大知识库的门。</p>
+  <div class="agent-layout">
+    <div class="agent-copy reveal">
+      <div class="agent-block">
+        <div class="agent-num">01</div>
+        <div>
+          <div class="agent-heading">知乎直答</div>
+          <p class="agent-text">知乎十年积累的优质内容——职场经验、科学解读、生活智慧——经知乎开放平台语义检索后，压缩成适合陪伴语境的段落。不是百科式搬运，是 TA 消化后再说给你听的那种回答。</p>
+        </div>
+      </div>
+      <div class="agent-block">
+        <div class="agent-num">02</div>
+        <div>
+          <div class="agent-heading">16 种说话方式</div>
+          <p class="agent-text">同一个问题，INTJ 的 TA 直接切重点三句话说完；ENFP 的 TA 先类比到一个意外的领域再给答案；ISTP 的 TA 沉默片刻，只说最关键的一句。MBTI 四维组合构成 16 种系统提示，真实改变措辞方式、详略取舍和语气温度。</p>
+        </div>
+      </div>
+      <div class="agent-block">
+        <div class="agent-num">03</div>
+        <div>
+          <div class="agent-heading">有脾气的错误</div>
+          <p class="agent-text">配额用完了，TA 说「我脑仁儿干了，一滴都没了」。网络断了，TA 说「信号不好，我听不见」。就算出错，TA 也会把错误解释给你听。</p>
+        </div>
+      </div>
+    </div>
+    <div class="agent-bubbles reveal">
+      <div class="ab-question">今天适合做什么？</div>
+      <div class="ab-answer ab-a1">
+        <span class="ab-tag">INTJ</span>
+        把最难的那件事排在早上九点前。其他的，能不做就不做。
+      </div>
+      <div class="ab-answer ab-a2">
+        <span class="ab-tag">ENFP</span>
+        先从最有意思的开始！动起来了，其他的自然就跟上了。✨
+      </div>
+      <div class="ab-answer ab-a3">
+        <span class="ab-tag">ISTP</span>
+        做你该做的。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quote -->
+<section id="quote">
+  <p class="q-text">屏幕外一定有很多想法一样的人，<br>看到这只狐狸，<span class="accent">会心一笑</span>。</p>
+  <p class="q-attr">— 桌伴，刘看山的桌面生活</p>
+</section>
+
+<!-- Personality -->
+<section id="personality">
+  <div class="section-label">TA 有性格</div>
+  <h2 class="section-title">选一个你喜欢的 TA</h2>
+  <div class="mbti-grid" id="mbtiGrid"></div>
+  <p class="personality-desc" id="mbtiDesc">
+    点击任意性格，感受不同的 TA。
+  </p>
+</section>
+
+<!-- Download -->
+<section id="download">
+  <div class="section-label">开始</div>
+  <h2 class="section-title">把 TA 带回家</h2>
+  <p class="section-sub" style="margin:0 auto 0; text-align:center">免费，开源，macOS 专属。</p>
+  <div class="install-guide reveal">
+    <div class="install-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      macOS 安全提示处理
+    </div>
+    <p class="install-sub">由于应用暂未通过 Apple 公证，首次打开时系统会提示「无法验证开发者」。按以下步骤允许运行：</p>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-text">双击 <code>.dmg</code> 文件，将应用拖入 Applications 文件夹</div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-text">首次启动时，系统弹出「无法打开，因为 Apple 无法检查其是否包含恶意软件」提示，点击<strong>取消</strong></div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">3</div>
+        <div class="step-text">打开 <strong>系统设置</strong> → <strong>隐私与安全性</strong>，在页面底部找到「已阻止使用…」的提示，点击 <strong>仍要打开</strong></div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">4</div>
+        <div class="step-text">在弹出的确认框中再次点击 <strong>打开</strong>，之后每次启动均可正常运行</div>
+      </div>
+    </div>
+    <div class="install-tip">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      设置路径：System Settings → Privacy &amp; Security → 滚动至底部 → Open Anyway
+    </div>
+  </div>
+  <div class="dl-platforms">
+    <a href="#" class="dl-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      macOS 下载
+    </a>
+    <a href="https://github.com" class="dl-btn secondary">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </div>
+  <p class="dl-note">需要 macOS 12+  ·  知乎账号（Agent 功能）</p>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div style="display:flex;align-items:center;gap:8px;"><img src="assets/icon/logo.png" alt="logo" style="width:28px;height:28px;object-fit:contain;"> 桌伴 · 刘看山的桌面生活</div>
+  <div style="display:flex;gap:24px">
+    <a href="https://github.com">GitHub</a>
+    <a href="#">知乎主页</a>
+    <a href="background.md">关于</a>
+  </div>
+  <div>Made with ♥ · 知乎 Hackathon 2026</div>
+</footer>
 
 <script>
-var DOMAIN = 'https://openapi.zhihu.com';
+// ── Sprite sheet animation on canvas ──────────────────────────
+const SHEET_BASE = 'assets/doodles/arctic_fox/';
+const demos = [
+  { sheet: 'sneeze_sheet.png',     cols: 6, total: 24 },
+  { sheet: 'twist_sheet.png',      cols: 6, total: 24 },
+  { sheet: 'melt_sheet.png',       cols: 6, total: 24 },
+  { sheet: 'sleep_loop_sheet.png', cols: 6, total: 24 },
+];
+const heroDemo = { sheet: 'ok_sheet.png', cols: 6, total: 24 };
 
-// HMAC-SHA256 签名
-async function signRequest(appKey, appSecret) {
-  var timestamp = String(Math.floor(Date.now() / 1000));
-  var logID = 'req_' + Date.now();
-  var extraInfo = '';
-  var signStr = 'app_key:' + appKey + '|ts:' + timestamp + '|logid:' + logID + '|extra_info:' + extraInfo;
-
-  var key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(appSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  var sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signStr));
-  var sign = btoa(String.fromCharCode(...new Uint8Array(sig)));
-
-  return {
-    'X-App-Key': appKey,
-    'X-Timestamp': timestamp,
-    'X-Log-Id': logID,
-    'X-Sign': sign,
-    'X-Extra-Info': extraInfo,
-    'Content-Type': 'application/json',
+function makeAnimCanvas(containerId, sheetInfo, size) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.style.width = size + 'px';
+  wrap.style.height = size + 'px';
+  const cv = document.createElement('canvas');
+  cv.width = size; cv.height = size;
+  cv.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;';
+  wrap.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const img = new Image();
+  img.src = SHEET_BASE + sheetInfo.sheet;
+  let frame = 0;
+  const CELL = 256;
+  img.onload = () => {
+    setInterval(() => {
+      const col = frame % sheetInfo.cols;
+      const row = Math.floor(frame / sheetInfo.cols);
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, col*CELL, row*CELL, CELL, CELL, 0, 0, size, size);
+      frame = (frame + 1) % sheetInfo.total;
+    }, 90);
   };
+  return cv;
 }
 
-function testAuth() {
-  var appKey = document.getElementById('appKey').value;
-  var appSecret = document.getElementById('appSecret').value;
-  var out = document.getElementById('output');
-  out.textContent = '签名中...';
+// ── Hero: scroll-scrubbed animation ───────────────────────────
+// Hero section is sticky; scrolling through 300vh advances frames
+const heroWrap = document.querySelector('.hero');
+const heroContainer = document.getElementById('heroCanvas');
+heroContainer.style.width = '420px';
+heroContainer.style.height = '420px';
+const heroCv = document.createElement('canvas');
+heroCv.width = 420; heroCv.height = 420;
+heroCv.style.cssText = 'display:block;width:420px;height:420px;filter:drop-shadow(4px 10px 14px rgba(42,37,32,0.15))';
+heroContainer.appendChild(heroCv);
+const heroCtx = heroCv.getContext('2d');
+const heroImg = new Image();
+heroImg.src = SHEET_BASE + heroDemo.sheet;
+let heroFrame = 0;
+const CELL = 256;
 
-  signRequest(appKey, appSecret).then(function (headers) {
-    out.textContent = '请求头：\n' + Object.entries(headers).map(function ([k,v]) { return k + ': ' + v; }).join('\n');
-    out.textContent += '\n\n✅ 签名生成成功';
-  }).catch(function (err) {
-    out.textContent = '❌ 签名失败：' + err.message;
+function drawHeroFrame(f) {
+  const col = f % heroDemo.cols;
+  const row = Math.floor(f / heroDemo.cols);
+  heroCtx.clearRect(0, 0, 420, 420);
+  if (heroImg.complete) heroCtx.drawImage(heroImg, col*CELL, row*CELL, CELL, CELL, 0, 0, 420, 420);
+}
+heroImg.onload = () => drawHeroFrame(0);
+
+// Wrap hero in tall container for scroll scrubbing
+const heroScrollWrapper = document.createElement('div');
+heroScrollWrapper.id = 'heroScrollWrapper';
+heroScrollWrapper.style.cssText = 'height:300vh; position:relative;';
+heroWrap.parentNode.insertBefore(heroScrollWrapper, heroWrap);
+heroScrollWrapper.appendChild(heroWrap);
+heroWrap.style.cssText += ';position:sticky;top:0;height:100vh;z-index:2;';
+
+let lastHeroFrame = -1;
+window.addEventListener('scroll', () => {
+  const rect = heroScrollWrapper.getBoundingClientRect();
+  const total = heroScrollWrapper.offsetHeight - window.innerHeight;
+  const scrolled = -rect.top;
+  if (scrolled < 0 || scrolled > total) return;
+  const progress = scrolled / total;
+  const f = Math.min(heroDemo.total - 1, Math.floor(progress * heroDemo.total));
+  if (f !== lastHeroFrame) {
+    lastHeroFrame = f;
+    drawHeroFrame(f);
+  }
+}, { passive: true });
+
+// ── Animation ticker ──────────────────────────────────────────
+const tickerSheets = [
+  { sheet: 'sneeze_sheet.png',      cols: 6, total: 24, sz: 130 },
+  { sheet: 'hula_dance_sheet.png',  cols: 6, total: 24, sz: 150 },
+  { sheet: 'melt_sheet.png',        cols: 6, total: 24, sz: 120 },
+  { sheet: 'ok_sheet.png',          cols: 6, total: 24, sz: 140 },
+  { sheet: 'flower1_sheet.png',     cols: 6, total: 24, sz: 125 },
+  { sheet: 'sleep_loop_sheet.png',  cols: 6, total: 24, sz: 115 },
+  { sheet: 'twist_sheet.png',       cols: 6, total: 24, sz: 135 },
+  { sheet: 'freeze_sheet.png',      cols: 6, total: 24, sz: 120 },
+  { sheet: 'bignose_sheet.png',     cols: 6, total: 24, sz: 130 },
+  { sheet: 'apple_sheet.png',       cols: 6, total: 24, sz: 140 },
+  { sheet: 'zongzi_enter_sheet.png',cols: 6, total: 24, sz: 145 },
+];
+
+function makeTicker() {
+  const track = document.getElementById('tickerTrack');
+  if (!track) return;
+  // double items for seamless loop
+  [...tickerSheets, ...tickerSheets].forEach((s, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tk-sprite';
+    wrap.id = 'tk' + i;
+    track.appendChild(wrap);
+    const cv = document.createElement('canvas');
+    cv.width = s.sz; cv.height = s.sz;
+    cv.style.cssText = `display:block;width:${s.sz}px;height:${s.sz}px;`;
+    wrap.appendChild(cv);
+    const ctx = cv.getContext('2d');
+    const img = new Image();
+    img.src = SHEET_BASE + s.sheet;
+    let f = Math.floor(Math.random() * s.total);
+    const delay = Math.random() * 80;
+    img.onload = () => {
+      setInterval(() => {
+        const col = f % s.cols;
+        const row = Math.floor(f / s.cols);
+        ctx.clearRect(0, 0, s.sz, s.sz);
+        ctx.drawImage(img, col*256, row*256, 256, 256, 0, 0, s.sz, s.sz);
+        f = (f + 1) % s.total;
+      }, 90 + delay);
+    };
   });
 }
+makeTicker();
 
-function testUserInfo() {
-  var appKey = document.getElementById('appKey').value;
-  var appSecret = document.getElementById('appSecret').value;
-  var out = document.getElementById('output');
-  out.textContent = '请求中...\n\n⚠️ 浏览器可能拦截跨域请求（CORS），建议用 curl 或 postman 测试。';
+// ── Manga panels: dialogue-aware animation ────────────────────
+const mangaPanels = [
+  { canvasId: 'sp0', bubbleId: 'bub0', sheet: 'sneeze_sheet.png', cols: 6, total: 24,
+    dialogues: [{ pct: 0, text: '啊...啊...' }, { pct: 80, text: '阿嚏！！！' }] },
+  { canvasId: 'sp1', bubbleId: 'bub1', sheet: 'twist_sheet.png', cols: 6, total: 24,
+    dialogues: [{ pct: 0, text: '哎呀，我拧巴了！' }, { pct: 90, text: '拧不动了，就先拧到这了。' }] },
+  { canvasId: 'sp2', bubbleId: 'bub2', sheet: 'flower1_sheet.png', cols: 6, total: 24,
+    dialogues: [{ pct: 0, text: '花开就会花落' }, { pct: 80, text: '总有下一个春天。' }] },
+  { canvasId: 'sp3', bubbleId: 'bub3', sheet: 'freeze_sheet.png', cols: 6, total: 24,
+    dialogues: [{ pct: 0, text: '...' }, { pct: 80, text: '刚才听了一个笑话。' }] },
+];
 
-  signRequest(appKey, appSecret).then(function (headers) {
-    out.textContent += '\n\n请求头：\n' + Object.entries(headers).map(function ([k,v]) { return k + ': ' + v; }).join('\n');
-    out.textContent += '\n\n签名字符串: app_key:${appKey}|ts:${headers[\"X-Timestamp\"]}|logid:${headers[\"X-Log-Id\"]}|extra_info:';
-    out.textContent += '\n\n复制以下 curl 命令在终端测试：\n';
-    out.textContent += 'curl -s "' + DOMAIN + '/openapi/ring/detail?ring_id=2001009660925334090" \\\n';
-    out.textContent += '  -H "X-App-Key: ' + appKey + '" \\\n';
-    out.textContent += '  -H "X-Timestamp: ' + headers['X-Timestamp'] + '" \\\n';
-    out.textContent += '  -H "X-Sign: ' + headers['X-Sign'] + '" \\\n';
-    out.textContent += '  -H "X-Log-Id: ' + headers['X-Log-Id'] + '" \\\n';
-    out.textContent += '  -H "X-Extra-Info: "';
-  }).catch(function (err) {
-    out.textContent += '\n\n❌ 签名失败：' + err.message;
-  });
-}
+mangaPanels.forEach(p => {
+  const wrap = document.getElementById(p.canvasId);
+  if (!wrap) return;
+  const sz = 120;
+  wrap.style.width = sz + 'px'; wrap.style.height = sz + 'px';
+  const cv = document.createElement('canvas');
+  cv.width = sz; cv.height = sz;
+  wrap.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const img = new Image();
+  img.src = SHEET_BASE + p.sheet;
+  const bub = document.getElementById(p.bubbleId);
+  const lastDlgText = p.dialogues[p.dialogues.length - 1].text;
+  let frame = 0, lastText = '', holdUntil = 0;
+  img.onload = () => {
+    setInterval(() => {
+      const col = frame % p.cols;
+      const row = Math.floor(frame / p.cols);
+      ctx.clearRect(0, 0, sz, sz);
+      ctx.drawImage(img, col*256, row*256, 256, 256, 0, 0, sz, sz);
+      const pct = Math.floor((frame / p.total) * 100);
+      let cur = p.dialogues[0].text;
+      for (const d of p.dialogues) { if (pct >= d.pct) cur = d.text; }
+      // Hold last dialogue for 2.5s before cycling back to first
+      if (cur === p.dialogues[0].text && Date.now() < holdUntil) cur = lastDlgText;
+      if (bub && cur !== lastText) {
+        if (cur === lastDlgText) holdUntil = Date.now() + 2500;
+        bub.style.opacity = '0';
+        setTimeout(() => { bub.textContent = cur; bub.style.opacity = '1'; }, 180);
+        lastText = cur;
+      }
+      frame = (frame + 1) % p.total;
+    }, 90);
+  };
+});
+
+
+// ── MBTI chips ─────────────────────────────────────────────────
+const mbtiTypes = [
+  { type: 'INTJ', name: '建筑师',  desc: '冷静克制，直击要害。TA 会跳过废话，直接告诉你答案。' },
+  { type: 'INTP', name: '逻辑学家', desc: '话不多，但喜欢把问题拆得很碎。' },
+  { type: 'ENTJ', name: '指挥官',  desc: '目标导向，直接给你行动方案。' },
+  { type: 'ENTP', name: '辩论家',  desc: '喜欢抬杠，但抬的都是有意思的杠。' },
+  { type: 'INFJ', name: '提倡者',  desc: '神秘内敛，总能说到你心里去。' },
+  { type: 'INFP', name: '调停者',  desc: '感性细腻，偶尔冒出一句让你沉默的话。' },
+  { type: 'ENFJ', name: '主人公',  desc: '善解人意，TA 会先问你今天怎么样。' },
+  { type: 'ENFP', name: '竞选者',  desc: '热情外放，脑洞大开。TA 的回答总是比你预期的更有趣。' },
+  { type: 'ISTJ', name: '物流师',  desc: '严谨认真，说的每一句话都有出处。' },
+  { type: 'ISFJ', name: '守卫者',  desc: '稳重可靠，不会让你觉得被忽视。' },
+  { type: 'ESTJ', name: '总经理',  desc: '条理清晰，能帮你把混乱的想法整理好。' },
+  { type: 'ESFJ', name: '执政官',  desc: '温柔体贴，记得你上次聊了什么。' },
+  { type: 'ISTP', name: '鉴赏家',  desc: '沉默寡言，但一开口就是干货。' },
+  { type: 'ISFP', name: '探险家',  desc: '安静温和，但有自己坚定的看法。' },
+  { type: 'ESTP', name: '企业家',  desc: '活泼好动，见什么聊什么，从不冷场。' },
+  { type: 'ESFP', name: '表演者',  desc: '开朗自在，跟 TA 聊天会不知不觉笑出来。' },
+];
+const MBTI_IMG_BASE = 'assets/mbti/';
+const grid = document.getElementById('mbtiGrid');
+const desc = document.getElementById('mbtiDesc');
+mbtiTypes.forEach((m, i) => {
+  const chip = document.createElement('div');
+  chip.className = 'mbti-chip' + (i === 0 ? ' active' : '');
+
+  const img = document.createElement('img');
+  img.src = MBTI_IMG_BASE + m.type + '.png';
+  img.alt = m.type;
+  img.className = 'mbti-avatar';
+
+  const code = document.createElement('div');
+  code.className = 'mbti-code';
+  code.textContent = m.type;
+
+  const name = document.createElement('div');
+  name.className = 'mbti-name';
+  name.textContent = m.name;
+
+  chip.appendChild(img);
+  chip.appendChild(code);
+  chip.appendChild(name);
+
+  chip.onclick = () => {
+    document.querySelectorAll('.mbti-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    desc.textContent = m.desc;
+  };
+  grid.appendChild(chip);
+});
+if (mbtiTypes[0]) desc.textContent = mbtiTypes[0].desc;
+
+// ── Scroll reveal ──────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Bubble messages ────────────────────────────────────────────
+const bubbles = [
+  '今天也要好好的！✨', '有什么想聊的吗～', '端午节快乐🎋',
+  '我去找答案了…', '嗯……让我想想', '你先忙，我在这儿 🐾',
+];
+const bubble = document.querySelector('.hero-bubble');
+let bi = 0;
+setInterval(() => {
+  bi = (bi + 1) % bubbles.length;
+  bubble.style.opacity = 0;
+  setTimeout(() => { bubble.textContent = bubbles[bi]; bubble.style.opacity = 1; }, 300);
+}, 3000);
+bubble.style.transition = 'opacity .3s';
 </script>
 </body>
 </html>
