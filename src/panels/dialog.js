@@ -117,6 +117,22 @@
     return html;
   }
 
+  // 渲染层：切掉 AI 回复末尾的引用来源（搜索上下文框已展示）
+  function stripCitations(text) {
+    var patterns = [
+      /\n引用来源\s*\n/,
+      /\n\n---\s*\n\*\s*\[/,
+      /\n\*\*引用来源\*\*\s*\n/,
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = text.match(patterns[i]);
+      if (m && m.index !== undefined) {
+        return text.substring(0, m.index);
+      }
+    }
+    return text;
+  }
+
   function addMsg(text, type, isMarkdown) {
     var loading = msgs.querySelector('.msg.loading');
     if (loading) loading.remove();
@@ -132,7 +148,7 @@
     if (isMarkdown === 'html') {
       div.innerHTML = text;
     } else if (isMarkdown && type === 'bot') {
-      div.innerHTML = md2html(text);
+      div.innerHTML = md2html(stripCitations(text));
     } else {
       div.textContent = text;
     }
@@ -460,6 +476,14 @@
         var html = renderSearchResults(results, '搜索上下文');
         addMsg(html, 'bot', 'html');
       }
+    });
+  }
+
+  // 监听划词提问（全局快捷键触发）
+  if (window.screenToyDialog && window.screenToyDialog.onSelectionQuery) {
+    window.screenToyDialog.onSelectionQuery(function (text) {
+      input.value = text;
+      send();
     });
   }
 

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Toy — 刘看山的桌面生活</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Caveat', 'STHeiti', 'PingFang SC', cursive, sans-serif;
+  background: #f6fbf7;
+  color: #2a2520;
+  overflow-x: hidden;
+}
+
+/* ── SVG sketch filter ──────────────────────────────── */
+.sketch {
+  filter: url(#sketch);
+}
+
+/* ── Hand-drawn border mixin via box-shadow ─────────── */
+.card {
+  position: relative;
+  background: #fff;
+  border-radius: 12px 8px 14px 10px / 10px 14px 8px 12px;
+  border: 2.5px solid #2a2520;
+  box-shadow: 3px 4px 0 #2a2520;
+  padding: 28px 32px;
+}
+
+/* ── Nav ─────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 48px;
+  background: rgba(246,251,247,0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid rgba(42,37,32,0.12);
+}
+.nav-logo {
+  font-size: 26px; font-weight: 700; color: #2a2520;
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-logo span { color: #d05a28; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a {
+  font-size: 20px; color: #5a5248; text-decoration: none;
+  transition: color .2s;
+}
+.nav-links a:hover { color: #d05a28; }
+.nav-cta {
+  font-size: 20px; font-weight: 700;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 10px 24px;
+  border-radius: 8px 6px 10px 7px / 6px 10px 7px 9px;
+  box-shadow: 3px 3px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+}
+.nav-cta:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 #d05a28; }
+.nav-cta:active { transform: translate(1px,1px); box-shadow: 2px 2px 0 #d05a28; }
+
+/* ── Hero ────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 100px 80px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background-image: url('https://raw.githubusercontent.com/placeholder/placeholder/main/bg.png');
+  background-size: cover;
+  background-position: center bottom;
+  opacity: 0.18;
+  pointer-events: none;
+}
+/* Hand-drawn scribble lines as decorative bg */
+.hero-doodle {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.hero-left { position: relative; z-index: 2; }
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 20px; color: #8a7e6e;
+  border-bottom: 2px wavy #d05a28;
+  margin-bottom: 20px;
+}
+.hero-title {
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1.2;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.hero-title .accent { color: #d05a28; }
+.hero-sub {
+  font-size: clamp(22px, 2.5vw, 32px);
+  color: #5a5248;
+  margin-bottom: 36px;
+  line-height: 1.5;
+}
+.hero-sub strong { color: #2a2520; }
+.hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  font-family: inherit; font-size: 22px; font-weight: 700;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 14px 32px;
+  border-radius: 10px 7px 12px 8px / 7px 12px 8px 11px;
+  box-shadow: 4px 4px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #d05a28; }
+.btn-secondary {
+  font-family: inherit; font-size: 22px;
+  background: transparent; color: #2a2520;
+  border: 2.5px solid #2a2520; cursor: pointer;
+  padding: 14px 32px;
+  border-radius: 10px 7px 12px 8px / 7px 12px 8px 11px;
+  box-shadow: 4px 4px 0 rgba(42,37,32,0.15);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-secondary:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 rgba(42,37,32,0.2); }
+
+/* Hero fox illustration */
+.hero-right {
+  position: relative; z-index: 2;
+  display: flex; justify-content: center; align-items: flex-end;
+}
+.hero-fox-wrap {
+  position: relative;
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0px) rotate(-1deg); }
+  50%      { transform: translateY(-14px) rotate(1deg); }
+}
+.hero-fox {
+  width: clamp(260px, 30vw, 420px);
+  image-rendering: pixelated;
+  filter: drop-shadow(6px 12px 16px rgba(42,37,32,0.18));
+}
+.hero-bubble {
+  position: absolute; top: -64px; right: -40px;
+  width: 218px; height: 142px;
+  background: url('../src/assets/speech_bubble.png') no-repeat center/contain;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 24px 20px 16px;
+  font-size: 19px; font-weight: 700; color: #2a2520;
+  text-align: center; line-height: 1.4;
+  animation: bubble-pop 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bubble-pop {
+  0%,100% { transform: scale(1) rotate(-2deg); }
+  50%      { transform: scale(1.05) rotate(1deg); }
+}
+.hero-shadow {
+  position: absolute; bottom: -20px; left: 50%;
+  transform: translateX(-50%);
+  width: 160px; height: 20px;
+  background: radial-gradient(ellipse, rgba(42,37,32,0.22) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: shadow-pulse 4s ease-in-out infinite;
+}
+@keyframes shadow-pulse {
+  0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.22; }
+  50%      { transform: translateX(-50%) scaleX(0.75); opacity: 0.1; }
+}
+
+/* ── Section base ─────────────────────────────────── */
+section { padding: 96px 80px; }
+.section-label {
+  font-size: 18px; color: #d05a28; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(32px, 3.5vw, 52px); font-weight: 700;
+  margin-bottom: 16px; line-height: 1.2;
+}
+.section-sub { font-size: 22px; color: #6a6258; max-width: 560px; line-height: 1.6; }
+
+/* ── Features ────────────────────────────────────── */
+#features { background: #edf7f0; }
+#features .inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  margin-top: 56px;
+}
+.feat-card {
+  background: #f6fbf7;
+  border: 2.5px solid #2a2520;
+  border-radius: 14px 10px 16px 12px / 10px 16px 12px 14px;
+  box-shadow: 4px 5px 0 rgba(42,37,32,0.12);
+  padding: 32px 28px;
+  transition: transform .2s, box-shadow .2s;
+}
+.feat-card:hover {
+  transform: translate(-3px,-3px);
+  box-shadow: 7px 8px 0 rgba(42,37,32,0.15);
+}
+.feat-icon {
+  width: 64px; height: 64px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.feat-icon svg { width: 100%; height: 100%; }
+.feat-title { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+.feat-desc { font-size: 20px; color: #6a6258; line-height: 1.55; }
+
+/* ── Demo strip ──────────────────────────────────── */
+#demo {
+  background: #f6fbf7;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.demo-strip {
+  margin-top: 56px;
+  display: flex; gap: 24px; align-items: flex-end;
+  flex-wrap: wrap; justify-content: center;
+}
+.demo-frame {
+  background: #fff;
+  border: 2.5px solid #2a2520;
+  border-radius: 14px 10px 16px 12px / 10px 16px 12px 14px;
+  box-shadow: 4px 4px 0 #2a2520;
+  overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.demo-frame:hover { transform: translate(-3px,-3px) rotate(-1deg); box-shadow: 7px 7px 0 #d05a28; }
+.demo-frame img { display: block; width: 100%; }
+.demo-label {
+  padding: 10px 16px;
+  font-size: 18px; color: #8a7e6e;
+  border-top: 1.5px solid rgba(42,37,32,0.1);
+}
+/* Animated sprite frames */
+.sprite-preview {
+  width: 120px; height: 120px;
+  image-rendering: pixelated;
+  overflow: hidden; position: relative;
+}
+.sprite-preview canvas { position: absolute; top: 0; left: 0; }
+
+/* ── Quote ───────────────────────────────────────── */
+#quote {
+  background: #2a2520;
+  color: #faf7f0;
+  text-align: center;
+  padding: 80px 80px;
+}
+#quote .q-text {
+  font-size: clamp(28px, 3.5vw, 52px);
+  font-weight: 700; line-height: 1.4; max-width: 800px; margin: 0 auto 16px;
+}
+#quote .q-text .accent { color: #e8874a; }
+#quote .q-attr { font-size: 20px; color: #a09080; }
+
+/* ── Personality ─────────────────────────────────── */
+#personality { background: #edf7f0; }
+.mbti-grid {
+  margin-top: 48px;
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.mbti-chip {
+  background: #f6fbf7;
+  border: 2px solid #2a2520;
+  border-radius: 20px 16px 22px 18px / 16px 22px 18px 20px;
+  padding: 8px 18px;
+  font-size: 18px;
+  box-shadow: 2px 2px 0 rgba(42,37,32,0.15);
+  transition: transform .15s;
+  cursor: default;
+}
+.mbti-chip:hover { transform: translateY(-3px) rotate(-1deg); }
+.mbti-chip.active { background: #d05a28; color: #fff; border-color: #d05a28; box-shadow: 2px 2px 0 #8a2a10; }
+.personality-desc {
+  margin-top: 36px;
+  font-size: 22px; color: #5a5248; line-height: 1.6; max-width: 600px;
+}
+
+/* ── Download ────────────────────────────────────── */
+#download {
+  text-align: center;
+  background: #f6fbf7;
+  padding: 96px 80px 80px;
+}
+.dl-platforms { display: flex; gap: 20px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+.dl-btn {
+  font-family: inherit; font-size: 22px; font-weight: 700;
+  display: flex; align-items: center; gap: 12px;
+  background: #2a2520; color: #faf7f0;
+  border: none; cursor: pointer;
+  padding: 16px 36px;
+  border-radius: 10px 7px 12px 8px;
+  box-shadow: 4px 4px 0 #d05a28;
+  transition: transform .15s, box-shadow .15s;
+  text-decoration: none;
+}
+.dl-btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #d05a28; }
+.dl-btn.secondary {
+  background: transparent; color: #2a2520;
+  border: 2.5px solid #2a2520;
+  box-shadow: 4px 4px 0 rgba(42,37,32,0.15);
+}
+.dl-note { margin-top: 20px; font-size: 18px; color: #a09080; }
+
+/* ── Footer ──────────────────────────────────────── */
+footer {
+  border-top: 2px solid rgba(42,37,32,0.12);
+  padding: 32px 80px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 18px; color: #a09080;
+  flex-wrap: wrap; gap: 12px;
+}
+footer a { color: #a09080; text-decoration: none; }
+footer a:hover { color: #d05a28; }
+
+/* ── Decorative hand-drawn underline ─────────────── */
+.squiggle {
+  position: relative; display: inline-block;
+}
+.squiggle::after {
+  content: '';
+  position: absolute; bottom: -4px; left: 0; right: 0; height: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='4'%3E%3Cpath d='M0 2 Q5 0 10 2 Q15 4 20 2 Q25 0 30 2 Q35 4 40 2' stroke='%23d05a28' stroke-width='2' fill='none'/%3E%3C/svg%3E") repeat-x;
+}
+
+/* ── Scroll reveal ───────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; padding: 100px 32px 48px; text-align: center; }
+  .hero-right { margin-top: 40px; }
+  .hero-actions { justify-content: center; }
+  section { padding: 72px 32px; }
+  nav { padding: 14px 24px; }
+  .nav-links { display: none; }
+  footer { padding: 24px 32px; }
+  #quote { padding: 60px 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- SVG filter for hand-drawn look -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo"><img src="../src/assets/icon/logo.png" alt="logo" style="width:40px;height:40px;border-radius:50%;object-fit:cover;background:#e8e8e8;"><span>Screen</span>Toy</div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#demo">动画</a>
+    <a href="#personality">性格</a>
+    <a href="#download">下载</a>
+  </div>
+  <button class="nav-cta" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">免费下载</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <!-- Decorative background scribbles -->
+  <svg class="hero-doodle" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+    <g stroke="#d05a28" stroke-width="1.5" fill="none" opacity="0.07" stroke-linecap="round">
+      <path d="M50 120 Q120 80 200 130 Q280 180 350 110"/>
+      <path d="M900 60 Q970 30 1050 80 Q1120 120 1180 70"/>
+      <path d="M1050 600 Q1100 560 1150 600 Q1180 630 1160 660"/>
+      <circle cx="80" cy="600" r="40" opacity="0.5"/>
+      <circle cx="1120" cy="300" r="25" opacity="0.4"/>
+      <path d="M600 750 Q650 730 700 750 Q740 768 780 750"/>
+      <!-- Stars -->
+      <g opacity="0.6">
+        <path d="M420 80 L424 92 L436 92 L426 100 L430 112 L420 104 L410 112 L414 100 L404 92 L416 92 Z"/>
+        <path d="M880 180 L882 188 L890 188 L884 193 L886 201 L880 197 L874 201 L876 193 L870 188 L878 188 Z"/>
+      </g>
+    </g>
+    <!-- Wavy lines -->
+    <g stroke="#2a2520" stroke-width="1" fill="none" opacity="0.04">
+      <path d="M0 400 Q150 380 300 400 Q450 420 600 400 Q750 380 900 400 Q1050 420 1200 400"/>
+      <path d="M0 420 Q150 400 300 420 Q450 440 600 420 Q750 400 900 420 Q1050 440 1200 420"/>
+    </g>
+  </svg>
+
+  <div class="hero-left">
+    <div class="hero-eyebrow">macOS 桌面伴侣 · 知乎 Hackathon</div>
+    <h1 class="hero-title">
+      把 AI <span class="accent">养</span>在桌面上，<br>
+      看 TA 自己<span class="squiggle">过日子</span>。
+    </h1>
+    <p class="hero-sub">
+      <strong>Agent 的能力，同伴的温度。</strong><br>
+      问 TA 问题，也可以只看 TA 发呆。
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">⬇ 免费下载</button>
+      <button class="btn-secondary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">看看 TA 怎么玩 →</button>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-fox-wrap">
+      <div class="hero-bubble">今天也要好好的！✨</div>
+      <div id="heroCanvas" style="width:320px;height:320px;position:relative;"></div>
+      <div class="hero-shadow"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-label">为什么是 TA</div>
+  <h2 class="section-title">不只是工具，是同路人</h2>
+  <p class="section-sub">大多数 AI 住在对话框里。TA 住在你屏幕上。</p>
+  <div class="inner">
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="32" cy="22" r="12"/>
+          <path d="M12 54c0-11 9-18 20-18s20 7 20 18"/>
+          <path d="M44 14c3 2 5 5 5 9" stroke="#d05a28"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">16 种性格</h3>
+      <p class="feat-desc">基于 MBTI 构造 16 种人格风格。同一个问题，不同性格的 TA 给你不同的回答。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="18" width="44" height="30" rx="4"/>
+          <path d="M22 18V14M42 18V14"/>
+          <path d="M10 28h44" stroke="#d05a28"/>
+          <circle cx="22" cy="36" r="3" fill="#d05a28" stroke="none"/>
+          <circle cx="32" cy="36" r="3" fill="#2a2520" stroke="none"/>
+          <circle cx="42" cy="36" r="3" fill="#2a2520" stroke="none"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">节气动画</h3>
+      <p class="feat-desc">端午节抱粽子入场，儿童节有专属问候。日期自动触发，是送给那天打开电脑的人的惊喜。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M32 10 L38 24 L54 24 L42 34 L46 48 L32 40 L18 48 L22 34 L10 24 L26 24 Z" stroke="#d05a28"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">知乎 Agent</h3>
+      <p class="feat-desc">接入知乎开放平台，亿级知识语料。问 TA 任何问题，TA 会用自己的性格告诉你。</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">
+        <svg viewBox="0 0 64 64" fill="none" stroke="#2a2520" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M32 54 C20 54 10 46 10 34 C10 22 20 10 32 10"/>
+          <path d="M32 10 C44 10 54 22 54 34 C54 46 44 54 32 54" stroke="#d05a28"/>
+          <path d="M32 10 L32 54M10 34 L54 34"/>
+          <path d="M16 20 Q32 28 48 20M16 48 Q32 40 48 48"/>
+        </svg>
+      </div>
+      <h3 class="feat-title">随手可及</h3>
+      <p class="feat-desc">蹲在屏幕角落，不打扰你工作。想聊就点，感到烦了就拖到角落——TA 会自己睡着。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Demo -->
+<section id="demo">
+  <div class="section-label">TA 的日常</div>
+  <h2 class="section-title">每天都有<span class="squiggle">新花样</span></h2>
+  <p class="section-sub">24 种动画状态，随机触发，永远有惊喜。</p>
+  <div class="demo-strip">
+    <div class="demo-frame reveal" style="width:160px">
+      <div class="sprite-preview" id="sp0"></div>
+      <div class="demo-label">打喷嚏</div>
+    </div>
+    <div class="demo-frame reveal" style="width:160px">
+      <div class="sprite-preview" id="sp1"></div>
+      <div class="demo-label">扭麻花</div>
+    </div>
+    <div class="demo-frame reveal" style="width:160px; transform:scale(1.08)">
+      <div class="sprite-preview" id="sp2"></div>
+      <div class="demo-label">端午入场</div>
+    </div>
+    <div class="demo-frame reveal" style="width:160px">
+      <div class="sprite-preview" id="sp3"></div>
+      <div class="demo-label">热化了</div>
+    </div>
+    <div class="demo-frame reveal" style="width:160px">
+      <div class="sprite-preview" id="sp4"></div>
+      <div class="demo-label">睡着了</div>
+    </div>
+  </div>
+  <p style="margin-top:32px; font-size:20px; color:#a09080;">以上仅为部分动画，完整体验需要下载应用。</p>
+</section>
+
+<!-- Quote -->
+<section id="quote">
+  <p class="q-text">屏幕外一定有很多想法一样的人，<br>看到这只狐狸，<span class="accent">会心一笑</span>。</p>
+  <p class="q-attr">— Screen Toy，刘看山的桌面生活</p>
+</section>
+
+<!-- Personality -->
+<section id="personality">
+  <div class="section-label">TA 有性格</div>
+  <h2 class="section-title">选一个你喜欢的 TA</h2>
+  <div class="mbti-grid" id="mbtiGrid"></div>
+  <p class="personality-desc" id="mbtiDesc">
+    点击任意性格，感受不同的 TA。
+  </p>
+</section>
+
+<!-- Download -->
+<section id="download">
+  <div class="section-label">开始</div>
+  <h2 class="section-title">把 TA 带回家</h2>
+  <p class="section-sub" style="margin:0 auto 0; text-align:center">免费，开源，macOS 专属。</p>
+  <div class="dl-platforms">
+    <a href="#" class="dl-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      macOS 下载
+    </a>
+    <a href="https://github.com" class="dl-btn secondary">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </div>
+  <p class="dl-note">需要 macOS 12+  ·  知乎账号（Agent 功能）</p>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div>🦊 Screen Toy · 刘看山的桌面生活</div>
+  <div style="display:flex;gap:24px">
+    <a href="https://github.com">GitHub</a>
+    <a href="#">知乎主页</a>
+    <a href="background.md">关于</a>
+  </div>
+  <div>Made with ♥ · 知乎 Hackathon 2026</div>
+</footer>
+
+<script>
+// ── Sprite sheet animation on canvas ──────────────────────────
+const SHEET_BASE = '../src/assets/doodles/arctic_fox/';
+const demos = [
+  { sheet: 'sneeze_sheet.png',      cols: 6, total: 24 },
+  { sheet: 'twist_sheet.png',       cols: 6, total: 24 },
+  { sheet: 'zongzi_enter_sheet.png',cols: 6, total: 24 },
+  { sheet: 'melt_sheet.png',        cols: 6, total: 24 },
+  { sheet: 'sleep_loop_sheet.png',  cols: 6, total: 24 },
+];
+const heroDemo = { sheet: 'ok_sheet.png', cols: 6, total: 24 };
+
+function makeAnimCanvas(containerId, sheetInfo, size) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.style.width = size + 'px';
+  wrap.style.height = size + 'px';
+  const cv = document.createElement('canvas');
+  cv.width = size; cv.height = size;
+  cv.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;';
+  wrap.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const img = new Image();
+  img.src = SHEET_BASE + sheetInfo.sheet;
+  let frame = 0;
+  const CELL = 256;
+  img.onload = () => {
+    setInterval(() => {
+      const col = frame % sheetInfo.cols;
+      const row = Math.floor(frame / sheetInfo.cols);
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, col*CELL, row*CELL, CELL, CELL, 0, 0, size, size);
+      frame = (frame + 1) % sheetInfo.total;
+    }, 90);
+  };
+  return cv;
+}
+
+// Hero canvas
+makeAnimCanvas('heroCanvas', heroDemo, 320);
+
+// Demo strip canvases
+demos.forEach((d, i) => makeAnimCanvas('sp'+i, d, 120));
+
+// ── MBTI chips ─────────────────────────────────────────────────
+const mbtiTypes = [
+  { type: 'INTJ', desc: '冷静克制，直击要害。TA 会跳过废话，直接告诉你答案。' },
+  { type: 'ENFP', desc: '热情外放，脑洞大开。TA 的回答总是比你预期的更有趣。' },
+  { type: 'ISTP', desc: '沉默寡言，但一开口就是干货。' },
+  { type: 'ESFJ', desc: '温柔体贴，记得你上次聊了什么。' },
+  { type: 'INTP', desc: '话不多，但喜欢把问题拆得很碎。' },
+  { type: 'ENTJ', desc: '目标导向，直接给你行动方案。' },
+  { type: 'INFP', desc: '感性细腻，偶尔冒出一句让你沉默的话。' },
+  { type: 'ESTP', desc: '活泼好动，见什么聊什么，从不冷场。' },
+  { type: 'INFJ', desc: '神秘内敛，总能说到你心里去。' },
+  { type: 'ENTP', desc: '喜欢抬杠，但抬的都是有意思的杠。' },
+  { type: 'ISFJ', desc: '稳重可靠，不会让你觉得被忽视。' },
+  { type: 'ESTJ', desc: '条理清晰，能帮你把混乱的想法整理好。' },
+  { type: 'ENFJ', desc: '善解人意，TA 会先问你今天怎么样。' },
+  { type: 'ISTJ', desc: '严谨认真，说的每一句话都有出处。' },
+  { type: 'ESFP', desc: '开朗自在，跟 TA 聊天会不知不觉笑出来。' },
+  { type: 'ISFP', desc: '安静温和，但有自己坚定的看法。' },
+];
+const grid = document.getElementById('mbtiGrid');
+const desc = document.getElementById('mbtiDesc');
+mbtiTypes.forEach((m, i) => {
+  const chip = document.createElement('div');
+  chip.className = 'mbti-chip' + (i === 0 ? ' active' : '');
+  chip.textContent = m.type;
+  chip.onclick = () => {
+    document.querySelectorAll('.mbti-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    desc.textContent = m.desc;
+  };
+  grid.appendChild(chip);
+});
+if (mbtiTypes[0]) desc.textContent = mbtiTypes[0].desc;
+
+// ── Scroll reveal ──────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Bubble messages ────────────────────────────────────────────
+const bubbles = [
+  '今天也要好好的！✨', '有什么想聊的吗～', '端午节快乐🎋',
+  '我去找答案了…', '嗯……让我想想', '你先忙，我在这儿 🐾',
+];
+const bubble = document.querySelector('.hero-bubble');
+let bi = 0;
+setInterval(() => {
+  bi = (bi + 1) % bubbles.length;
+  bubble.style.opacity = 0;
+  setTimeout(() => { bubble.textContent = bubbles[bi]; bubble.style.opacity = 1; }, 300);
+}, 3000);
+bubble.style.transition = 'opacity .3s';
+</script>
+</body>
+</html>
