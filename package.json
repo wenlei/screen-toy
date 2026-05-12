@@ -24,7 +24,6 @@
     "files": [
       "out/**/*",
       "src/**/*",
-      "node_modules/**/*",
       "package.json"
     ],
     "directories": {
