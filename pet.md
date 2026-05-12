@@ -75,12 +75,71 @@ idle ──→ wander ──→ idle ──→ sit ──→ idle
 }
 ```
 
-**流程**：
-1. `main.ts` 窗口加载后读 JSON，按当天 `MM-DD` 匹配事件
-2. 若匹配，通过 IPC `event-animations-config` / `quit-animations-config` 下发到 renderer
-3. `renderer.js` 动态替换 `EnterSprite.drawDirect` / `QuitSprite.draw(·)` 为新图像的绘制方法
+## 动画注册流程
 
-**字段说明**：
+### 默认精灵图（静态注册）
+
+`src/doodle-render.js:228-391` 在页面加载时将所有精灵图 PNG 加载为 `window.*Sprite` 对象：
+
+```
+quit_sheet.png     → window.QuitSprite    { draw, drawDirect }
+enter_sheet.png    → window.EnterSprite   { drawDirect }
+twist_sheet.png    → window.TwistSprite   { draw, drawDirect }
+sneeze_sheet.png   → window.SneezeSprite  { draw, drawDirect }
+melt_sheet.png     → window.MeltSprite    { draw, drawDirect }
+...
+（共 17 个精灵图对象）
+```
+
+### 事件动画（运行时覆盖）
+
+日期驱动的事件动画不是注册新精灵，而是在 `renderer.js:300-383` 中**覆盖**默认精灵的 `draw` 方法：
+
+```
+1. main.ts:137  checkEventAnimations()
+   └─ 读 event_animations.json → 按 MM-DD 匹配事件 → IPC 下发
+
+2. main.ts:156-161
+   └─ event-animations-config IPC   → renderer（入场）
+   └─ quit-animations-config IPC    → renderer（退场）
+
+3. renderer.js:300-383
+   └─ new Image() 加载事件图片
+   └─ 替换 EnterSprite.drawDirect / QuitSprite.draw(·)
+   └─ 图片未加载完时回调原默认方法
+```
+
+### 跨天自动更新
+
+`main.ts:176` — `setInterval(checkEventAnimations, 60*60*1000)` 每 60 分钟重新检查日期，日期变更后重新加载配置并下发新动画，再次覆盖 draw 方法。
+
+### 数据流
+
+```
+event_animations.json
+  │
+  ▼
+main.ts (checkEventAnimations)
+  │ IPC: event-animations-config / quit-animations-config
+  ▼
+preload.ts (onEventAnimationsConfig / onQuitAnimationsConfig)
+  │
+  ▼
+renderer.js (运行时覆盖 EnterSprite.draw / QuitSprite.draw)
+  │
+  ▼
+游戏循环 (enterFrameIdx / quitFrameIdx >= 0 时调用)
+```
+
+| 文件 | 职责 |
+|------|------|
+| `doodle-render.js` | 加载默认精灵图，创建 `window.*Sprite` 对象 |
+| `main.ts:135-177` | 读取事件配置，日期匹配，IPC 下发，跨天定时刷新 |
+| `preload.ts:59-65` | 暴露 `onEventAnimationsConfig` / `onQuitAnimationsConfig` |
+| `renderer.js:300-383` | 接收 IPC，加载事件图片，运行时覆盖 draw 方法 |
+| `event_animations.json` | 声明日期 → 动画文件的映射 |
+
+
 
 | 字段 | 说明 |
 |------|------|

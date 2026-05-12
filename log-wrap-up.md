@@ -264,7 +264,67 @@
 
 | # | 事项 | 优先级 | 状态 |
 |---|------|--------|------|
-| 1 | `zhida-fast-1p5` / `zhida-thinking-1p5` 忽略风格指令（硬编码自我认知） | 高 | ⚠️ 已确认 |
-| 2 | 双轮输出方案：Round 1 获取事实回答 → Round 2 风格调整 | 高 | 待实现 |
-| 3 | `zhida-agent` 模型不支持上下文历史传参（需验证） | 中 | 待验证 |
-| 4 | Windows / Linux / HarmonyOS 打包 | 低 | 待实现 |
+| 1 | `zhida-agent` 模型不支持上下文历史传参（需验证） | 中 | 待验证 |
+| 2 | Windows / Linux / HarmonyOS 打包 | 低 | 待实现 |
+
+---
+
+## 2026-05-11
+
+### 18. 风格注入验证通过
+
+**需求**：确认 `user` 前缀风格注入是否对知乎模型有效
+
+**模块**：`electron/agent.ts`
+
+**测试方法**：curl 发送有风格 vs 无风格的用户消息，对比回复
+
+**发现**：
+- ❌ "自我介绍"类问题 → 模型有硬编码模板，无法覆盖（之前误判的根因）
+- ✅ 一般性问题（天气等） → 风格注入**完全有效**，差异巨大
+  - 有风格："今天天气简直太棒啦！阳光灿烂得让人心情都跟着飞起来！蓝天像棉花糖..."
+  - 无风格："以下是 2026 年 5 月 11 日的天气情况：北京晴转多云...最高 33℃..."
+
+**结论**：移除 `system` role、改为 `user` 前缀的方案正确。MBTI 风格对一般性问题有效。无需双轮输出。
+
+---
+
+### 19. 代码审计修复（6 到 1）
+
+对全项目代码逻辑审计，发现并修复 7 个问题，按严重程度排序：
+
+#### 🟡 Medium
+
+**#6 移除死代码** — `agent.ts:522-527`
+- `formatInstructions` 搜索已删除的 `## 回复格式` 头，始终返回空
+- 移除死代码块，仅保留 `## 关于搜索结果` 提取
+
+**#7 跨年日期范围** — `main.ts:150-165`
+- `mmddToNum` 数值比较对跨年范围失效（如 `12-25 ~ 01-03`）
+- 修复：`startNum <= endNum` 判断，跨年用 `todayNum >= startNum || todayNum <= endNum`
+
+**#8 ipcRenderer 监听器清理** — `preload.ts:125-130, 160-164`
+- `onReceive`、`onChunk`、`onStyleChanged` 注册前缺 `removeAllListeners`
+- 补全，防止 dialog 窗口重载时旧回调阻断新回调
+
+#### 🟠 High
+
+**#3 流式回复缺失 footer** — `dialog.js:475-481`
+- Zhihu 流式回复创建裸 `<div>`，不经过 `addMsg()` → 无时间戳和复制按钮
+- 修复：流式完成后 `remove()` streamingEl → 调用 `addMsg(msg, 'bot', true)`
+
+**#4 热榜不更新 Agent 历史** — `agent.ts:400-403` + `main.ts:653-656`
+- `save-hotlist-to-history` 写入 knowledge.json，但已有 agent 不知情
+- 修复：新增 `Agent.pushMessage()`，保存后同步推入 agent 历史
+
+#### 🔴 Critical
+
+**#1 加载历史会话 stylePrefix 残留** — `main.ts:579-580`
+- `conversation-load` 调 `setHistory()` 但不重建 Agent → `stylePrefix` 保留旧值
+- 后续消息用错误 MBTI 风格发送
+- 修复：`conversation-load` 设 `agent = null`，下次 `dialog-send` 时重新创建
+
+**#2 事件动画跨天不更新** — `main.ts:136-178`
+- `event_animations.json` 仅在 `did-finish-load` 时加载一次
+- 应用跨天后动画不随日期切换（如儿童节过了仍显示）
+- 修复：提取 `checkEventAnimations()`，外加 60 分钟 `setInterval` 定时刷新

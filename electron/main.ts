@@ -106,6 +106,7 @@ function saveSettings() {
 
 function createWindow() {
   const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
+  var animInterval: NodeJS.Timeout | null = null;
 
   win = new BrowserWindow({
     width: WIN_W,
@@ -134,7 +135,8 @@ function createWindow() {
 
   // 注入事件动画配置（入场 + 退场）
   if (win) {
-    win.webContents.on('did-finish-load', () => {
+    // 提取为独立函数，支持跨天定时刷新
+    function checkEventAnimations() {
       try {
         var configPath = path.join(__dirname, '..', '..', 'src', 'assets', 'doodles', 'arctic_fox', 'event_animations.json');
         if (!fs.existsSync(configPath)) return;
@@ -142,8 +144,32 @@ function createWindow() {
         var today = new Date();
         var mmdd = String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
-        var event = (fullConfig.events || []).find(function (e: any) { return e.date === mmdd; });
-        if (!event) return;
+        // 日期匹配：支持单日 date 和范围 date_start/date_end
+        function mmddToNum(s: string): number {
+          var parts = s.split('-');
+          return parseInt(parts[0], 10) * 100 + parseInt(parts[1], 10);
+        }
+        var todayNum = mmddToNum(mmdd);
+        var event = (fullConfig.events || []).find(function (e: any) {
+          if (e.date) return e.date === mmdd;
+          if (e.date_start && e.date_end) {
+            var startNum = mmddToNum(e.date_start);
+            var endNum = mmddToNum(e.date_end);
+            if (startNum <= endNum) {
+              return todayNum >= startNum && todayNum <= endNum;
+            } else {
+              // 跨年范围，如 12-25 ~ 01-03
+              return todayNum >= startNum || todayNum <= endNum;
+            }
+          }
+          return false;
+        });
+        if (!event) {
+          // 无匹配事件 → 通知 renderer 恢复默认动画
+          win!.webContents.send('event-animations-config', {});
+          win!.webContents.send('quit-animations-config', {});
+          return;
+        }
 
         // 如果事件引用了 group，从 resource_groups 中解析出 animations
         if (event.group && !event.animations && fullConfig.resource_groups) {
@@ -160,10 +186,16 @@ function createWindow() {
           win!.webContents.send('quit-animations-config', event);
         }
       } catch (e) {}
-    });
+    }
+
+    win.webContents.on('did-finish-load', checkEventAnimations);
+
+    // 每 60 分钟检查一次，防止跨天后动画未更新
+    animInterval = setInterval(checkEventAnimations, 60 * 60 * 1000);
   }
 
   win.on('closed', () => {
+    if (animInterval) clearInterval(animInterval);
     win = null;
   });
 }
@@ -254,9 +286,6 @@ ipcMain.on('apply-settings', (_event, settings: typeof currentSettings) => {
     });
   }
   // 通知 dialog 风格/模型变更（无论是否有活跃会话）
-  var mbtiChanged = (settings.mbtiEI !== undefined || settings.mbtiSN !== undefined ||
-       settings.mbtiTF !== undefined || settings.mbtiJP !== undefined);
-  var modelChanged = settings.agentModel !== undefined;
   if (mbtiChanged || modelChanged) {
     if (dialogWin && !dialogWin.isDestroyed()) {
       dialogWin.webContents.send('style-changed', {
@@ -478,8 +507,15 @@ ipcMain.on('dialog-send', (_event, msg: string) => {
       }
     } : undefined,
     (reply) => {
+      // 先发回复，再发搜索上下文（显示在回复下方）
       if (dialogWin && !dialogWin.isDestroyed()) {
         dialogWin.webContents.send('dialog-message', reply);
+      }
+      if (agent && agent.searchResults && agent.searchResults.length > 0) {
+        if (dialogWin && !dialogWin.isDestroyed()) {
+          dialogWin.webContents.send('dialog-search-results', agent.searchResults);
+        }
+        agent.searchResults = [];
       }
 
   // Auto-save conversation to knowledge base
@@ -557,23 +593,14 @@ ipcMain.handle('conversation-load', async (_event, id: string) => {
   if (record.agentModel) currentSettings.agentModel = record.agentModel;
   if (record.searchType) currentSettings.searchType = record.searchType;
   if (record.enableDirectAnswer !== undefined) currentSettings.enableDirectAnswer = record.enableDirectAnswer;
-  // Load history into agent
-  if (agent) {
-    agent.clearHistory();
-    var msgs: import('./agent').ChatMessage[] = [];
-    for (var i = 0; i < record.messages.length; i++) {
-      var m = record.messages[i];
-      if (m.role === 'user' || m.role === 'assistant') {
-        msgs.push({ role: m.role as 'user' | 'assistant', content: m.content });
-      }
-    }
-    agent.setHistory(msgs);
-  }
+  // 重置 Agent，确保下次 dialog-send 用加载的 MBTI 重新创建
+  agent = null;
   return {
     messages: record.messages,
     initialStyle: record.initialStyle,
     styleChanges: record.styleChanges,
     mbtiEI: record.mbtiEI, mbtiSN: record.mbtiSN, mbtiTF: record.mbtiTF, mbtiJP: record.mbtiJP,
+    enableDirectAnswer: record.enableDirectAnswer,
   };
 });
 
@@ -631,6 +658,11 @@ ipcMain.on('save-hotlist-to-history', (_event, text: string) => {
   // 通知 dialog 刷新会话列表
   if (dialogWin && !dialogWin.isDestroyed()) {
     dialogWin.webContents.send('refresh-conversation-list');
+  }
+  // 如果有活跃的 agent，同步更新其内部历史
+  if (agent) {
+    agent.pushMessage({ role: 'user', content: '查看热榜' });
+    agent.pushMessage({ role: 'assistant', content: text });
   }
 });
 

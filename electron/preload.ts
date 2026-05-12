@@ -59,9 +59,11 @@ contextBridge.exposeInMainWorld('screenToy', {
     ipcRenderer.on('sun-data', (_event, data) => callback(data));
   },
   onEventAnimationsConfig: (callback: (config: any) => void) => {
+    ipcRenderer.removeAllListeners('event-animations-config');
     ipcRenderer.on('event-animations-config', (_event, config) => callback(config));
   },
   onQuitAnimationsConfig: (callback: (config: any) => void) => {
+    ipcRenderer.removeAllListeners('quit-animations-config');
     ipcRenderer.on('quit-animations-config', (_event, config) => callback(config));
   },
 });
@@ -74,10 +76,7 @@ contextBridge.exposeInMainWorld('screenToySettings', {
     ipcRenderer.removeAllListeners('settings-current');
     ipcRenderer.on('settings-current', (_event, settings) => callback(settings));
   },
-  onApps: (callback: (apps: any) => void) => {
-    ipcRenderer.removeAllListeners('available-apps');
-    ipcRenderer.on('available-apps', (_event, apps) => callback(apps));
-  },
+
   requestCurrent: () => {
     ipcRenderer.send('request-settings');
   },
@@ -120,9 +119,11 @@ contextBridge.exposeInMainWorld('screenToyMenu', {
 
 contextBridge.exposeInMainWorld('screenToyDialog', {
   onReceive: (callback: (msg: string) => void) => {
+    ipcRenderer.removeAllListeners('dialog-message');
     ipcRenderer.on('dialog-message', (_event, msg: string) => callback(msg));
   },
   onChunk: (callback: (chunk: string) => void) => {
+    ipcRenderer.removeAllListeners('dialog-chunk');
     ipcRenderer.on('dialog-chunk', (_event, chunk: string) => callback(chunk));
   },
   onConversationId: (callback: (data: any) => void) => {
@@ -158,11 +159,16 @@ contextBridge.exposeInMainWorld('screenToyDialog', {
     ipcRenderer.on('refresh-conversation-list', () => callback());
   },
   onStyleChanged: (callback: (style: any) => void) => {
+    ipcRenderer.removeAllListeners('style-changed');
     ipcRenderer.on('style-changed', (_event, style) => callback(style));
   },
   onCurrentStyle: (callback: (style: any) => void) => {
     ipcRenderer.removeAllListeners('dialog-current-style');
     ipcRenderer.on('dialog-current-style', (_event, style) => callback(style));
+  },
+  onSearchResults: (callback: (results: any[]) => void) => {
+    ipcRenderer.removeAllListeners('dialog-search-results');
+    ipcRenderer.on('dialog-search-results', (_event, results) => callback(results));
   },
 });
 

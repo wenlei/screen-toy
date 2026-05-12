@@ -28,8 +28,8 @@
     enterFrameMs:  80,
     quitFrameMs:   80,
     // Random animation cooldown range (seconds)
-    animCooldownMinSec: 25,
-    animCooldownMaxSec: 60,
+    animCooldownMinSec: 20,
+    animCooldownMaxSec: 20,
 
     // Bubble
     randomQuotes: [

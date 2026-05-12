@@ -106,6 +106,24 @@ main.ts: currentSettings 更新
 agent 重建（下次 dialog-send 生效）
   ↓
 style-changed IPC → dialog 窗口立即显示更新（无论有无活跃会话）
+```
+
+**风格生效范围**（已验证）：
+| 问题类型 | 风格效果 |
+|----------|----------|
+| 自我介绍 / 你是谁 | ❌ 模型有硬编码模板，无法覆盖 |
+| 一般性知识问答 | ✅ 风格注入完全有效 |
+
+测试对比："今天的天气怎么样？"→ 有风格（热情活泼+感叹号）与无风格（数据罗列）差异巨大。日常对话中 99% 为一般性问题，风格注入有效。
+用户在 Settings 调整 MBTI toggle
+  ↓
+apply({ mbtiEI: 'I', ... })
+  ↓
+main.ts: currentSettings 更新
+  ↓
+agent 重建（下次 dialog-send 生效）
+  ↓
+style-changed IPC → dialog 窗口立即显示更新（无论有无活跃会话）
   ↓
 如果当前 session 已有消息 → recordStyleChange 写入 system 消息
 ```
@@ -229,12 +247,10 @@ knowledge.saveOrUpdateConversation({ id: cid, ..., messages: allMessages })
 
 选择历史会话：
   → conversation-load IPC
-  → currentConversationId = id（修复后）
-  → knowledge.getConversationById(id)
-  → agent.clearHistory() + agent.setHistory(messages)
+  → currentConversationId = id
   → 恢复元信息到 currentSettings
-  → 显示初始风格 + 风格变更记录
-  → 下次发消息追加到该 session
+  → agent = null（销毁旧 Agent，下次 dialog-send 时用新 MBTI 重建）
+  → 下次发消息时：重新创建 Agent（包含正确的 stylePrefix） + 加载该 Session 的完整历史
 ```
 
 ## 元信息恢复
@@ -298,3 +314,5 @@ knowledge.saveOrUpdateConversation({ id: cid, ..., messages: allMessages })
 | 9 | 加载历史不设置 currentConversationId | ✅ 已修复 — conversation-load 同步设置 |
 | 10 | ipcRenderer 监听器页面重载后累积 | ✅ 已修复 — removeAllListeners 清理 |
 | 11 | 热榜不保存到 Session | ✅ 已修复 — saveHotlistToHistory 从 Settings bridge 移至 Dialog bridge |
+| 12 | 加载历史 Session 后 MBTI 风格残留 | ✅ 已修复 — conversation-load 设 agent = null 强制重建 |
+| 13 | 热榜不更新 Agent 历史 | ✅ 已修复 — 新增 pushMessage() 方法同步 agent 内部历史 |

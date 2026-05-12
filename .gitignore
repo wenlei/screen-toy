@@ -6,3 +6,4 @@ dist/
 *.zip
 .claude/
 .playwright-cli/
+_unreferenced/

@@ -40,23 +40,26 @@
   }
 
   // ---- Sleep / wakeup sheets ----
-  var SLEEP_COLS = 6, SLEEP_FRAME_W = 255, SLEEP_FRAME_H = 256;
+  var SLEEP_COLS = 6, SLEEP_FRAME_W = 256, SLEEP_FRAME_H = 256;
 
   // Three separate sheets: intro (play once), loop (repeat), outro (play once)
   var sleepImg = new Image();
   var sleepLoaded = false;
   sleepImg.onload = function () { sleepLoaded = true; };
   sleepImg.src = basePath + 'sleep_sheet.png';
+  if (sleepImg.complete) sleepLoaded = true;
 
   var sleepLoopImg = new Image();
   var sleepLoopLoaded = false;
   sleepLoopImg.onload = function () { sleepLoopLoaded = true; };
   sleepLoopImg.src = basePath + 'sleep_loop_sheet.png';
+  if (sleepLoopImg.complete) sleepLoopLoaded = true;
 
   var wakeImg = new Image();
   var wakeLoaded = false;
   wakeImg.onload = function () { wakeLoaded = true; };
   wakeImg.src = basePath + 'wakeup_sheet.png';
+  if (wakeImg.complete) wakeLoaded = true;
 
   function getSleepWakeRect(frameIndex) {
     var col = frameIndex % SLEEP_COLS;
@@ -74,6 +77,7 @@
   var dogImg = new Image();
   dogImg.onload = function () { dogSheet = this; dogLoaded = true; };
   dogImg.src = basePath + 'sheet.png';
+  if (dogImg.complete) { dogSheet = dogImg; dogLoaded = true; }
 
   // ---- Frame position (dog) ----
   function getFrameRect(index, row, fw, fh, cols) {
@@ -197,6 +201,7 @@
   var quitLoaded = false;
   quitSheet.onload = function () { quitLoaded = true; };
   quitSheet.src = basePath + 'quit_sheet.png';
+  if (quitSheet.complete) quitLoaded = true;
 
   // Draw one quit-animation frame into ctx (DISPLAY_W × DISPLAY_H canvas).
   // Desaturation is applied via ctx.filter so sparkle colours are stripped.
@@ -260,6 +265,7 @@
   var enterLoaded = false;
   enterSheet.onload = function () { enterLoaded = true; };
   enterSheet.src = basePath + 'enter_sheet.png';
+  if (enterSheet.complete) enterLoaded = true;
 
   function drawEnterDirect(ctx, frameIdx, dx, dy, dw, dh) {
     if (!enterLoaded) return;
@@ -298,11 +304,13 @@
   var twistLoaded = false;
   twistSheet.onload = function () { twistLoaded = true; };
   twistSheet.src = basePath + 'twist_sheet.png';
+  if (twistSheet.complete) twistLoaded = true;
 
   var detwistSheet = new Image();
   var detwistLoaded = false;
   detwistSheet.onload = function () { detwistLoaded = true; };
   detwistSheet.src = basePath + 'detwist_sheet.png';
+  if (detwistSheet.complete) detwistLoaded = true;
 
   function drawTwistDirect(ctx, frameIdx, dx, dy, dw, dh) {
     if (!twistLoaded) return;
@@ -353,6 +361,7 @@
     var loaded = false;
     sheet.onload = function () { loaded = true; };
     sheet.src = basePath + filename;
+    if (sheet.complete) loaded = true;
 
     function drawDirect(ctx, frameIdx, dx, dy, dw, dh) {
       if (!loaded) return;
