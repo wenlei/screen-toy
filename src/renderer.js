@@ -480,7 +480,7 @@
             var sw = Math.round(canvas.width * shrink);
             var sh = Math.round(canvas.height * shrink);
             var sx = Math.round((canvas.width - sw) / 2);
-            var sy = Math.round((canvas.height - sh) / 2);
+            var sy = Math.round((canvas.height - sh) / 2 + canvas.height * 0.08);
             window.EnterSprite.drawDirect(ctx, enterFrameIdx, sx, sy, sw, sh);
           }
           requestAnimationFrame(loop);
