@@ -42,16 +42,24 @@ var params = new URLSearchParams(window.location.search);
 var code = params.get('code');
 
 if (!code) {
+  // 调试：显示所有收到参数
+  var allParams = [];
+  params.forEach(function (v, k) { allParams.push(k + '=' + v); });
+  var debugInfo = '收到参数: ' + (allParams.length ? allParams.join(', ') : '(无)') +
+    '\n完整URL: ' + window.location.href;
+
   // 知乎可能返回了错误信息
   var error = params.get('error');
   var errorDesc = params.get('error_description');
   if (error) {
     document.getElementById('step1').innerHTML =
       '<p class="error">授权被拒绝：' + (errorDesc || error) + '</p>' +
-      '<p class="info">redirect_uri 必须是知乎后台注册的地址：<br><code>' + REDIRECT_URI + '</code></p>';
+      '<p class="info">' + debugInfo + '</p>' +
+      '<p class="info">redirect_uri: <code>' + REDIRECT_URI + '</code></p>';
   } else {
     document.getElementById('step1').innerHTML =
       '<p class="error">未收到授权码</p>' +
+      '<pre class="result">' + debugInfo + '</pre>' +
       '<p class="info">请确认 redirect_uri 已在知乎后台注册：<br><code>' + REDIRECT_URI + '</code></p>';
   }
 } else {
