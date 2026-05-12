@@ -26,15 +26,12 @@
   <a href="../login.html" class="btn">← 重新登录</a>
 </div>
 <script>
-var APP_ID = '241';
-var APP_KEY = '6e7e993d66504acb8ab7c4786ed00355';
-var REDIRECT_URI = 'https://wenlei.github.io/screen-toy/callback';
+var PROXY = 'https://zhihu-oauth-proxy.spadesacn.workers.dev/exchange';
 
 var params = new URLSearchParams(window.location.search);
 var code = params.get('code');
 var debug = document.getElementById('debug');
 
-// 调试：显示所有收到参数
 var allParams = [];
 params.forEach(function (v, k) { allParams.push(k + '=' + v); });
 debug.innerHTML = '<p class="info">URL参数: ' + (allParams.length ? allParams.join(', ') : '(无)') + '</p>';
@@ -45,22 +42,9 @@ if (error) {
   debug.innerHTML += '<p class="info">请确认 redirect_uri 已在知乎后台注册</p>';
 } else if (code) {
   debug.innerHTML += '<p class="info">✅ 收到授权码：</p><div class="code">' + code + '</div>';
-  debug.innerHTML += '<p class="info">正在交换 access_token...</p>';
+  debug.innerHTML += '<p class="info">正在通过代理交换 access_token...</p>';
 
-  // 交换 access_token
-  var body = new URLSearchParams({
-    app_id: APP_ID,
-    app_key: APP_KEY,
-    grant_type: 'authorization_code',
-    redirect_uri: REDIRECT_URI,
-    code: code,
-  });
-
-  fetch('https://openapi.zhihu.com/access_token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  })
+  fetch(PROXY + '?code=' + encodeURIComponent(code))
   .then(function (r) { return r.json(); })
   .then(function (data) {
     if (data.access_token) {
