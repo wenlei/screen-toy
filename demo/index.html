@@ -570,6 +570,7 @@ footer a:hover { color: #d05a28; }
      <a href="#download">下载</a>
    </div>
   <button class="nav-cta" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">免费下载</button>
+  <a id="navLoginBtn" href="login.html" style="margin-left:10px;padding:7px 16px;border:1.5px solid #d05a28;color:#d05a28;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;">连接知乎</a>
 </nav>
 
 <!-- Hero -->
@@ -1118,6 +1119,26 @@ setInterval(() => {
   setTimeout(() => { bubble.textContent = bubbles[bi]; bubble.style.opacity = 1; }, 300);
 }, 3000);
 bubble.style.transition = 'opacity .3s';
+
+// ── 登录状态 ──────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('navLoginBtn');
+  if (!btn) return;
+  var token = localStorage.getItem('zhihu_access_token');
+  if (token) {
+    btn.textContent = '✓ 已连接知乎';
+    btn.style.color = '#34C759';
+    btn.style.borderColor = '#34C759';
+    btn.href = '#';
+    btn.onclick = function(e) {
+      e.preventDefault();
+      if (confirm('确认断开知乎账号连接？')) {
+        localStorage.removeItem('zhihu_access_token');
+        location.reload();
+      }
+    };
+  }
+})();
 </script>
 </body>
 </html>

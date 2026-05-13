@@ -2,68 +2,69 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>Screen Toy — OAuth 回调</title>
+<title>桌伴 — 登录中</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font:14px/1.5 -apple-system, sans-serif; background:#F5F5F7; display:flex; justify-content:center; align-items:center; min-height:100vh; }
   .card { background:#fff; border-radius:12px; padding:24px 32px; box-shadow:0 2px 12px rgba(0,0,0,0.08); max-width:480px; width:100%; }
   h2 { font-size:18px; margin-bottom:16px; }
-  .code { background:#1C1C1E; color:#30D158; padding:12px 16px; border-radius:8px; font:13px 'SF Mono', monospace; word-break:break-all; margin-bottom:12px; }
-  .result { background:#F2F2F7; padding:12px 16px; border-radius:8px; font:12px 'SF Mono', monospace; white-space:pre-wrap; max-height:300px; overflow-y:auto; margin-bottom:12px; }
-  .error { color:#FF3B30; font-size:13px; margin-bottom:8px; }
   .info { color:#6E6E73; font-size:13px; margin-bottom:4px; }
+  .error { color:#FF3B30; font-size:13px; margin-bottom:8px; }
+  .success { color:#34C759; font-size:13px; margin-bottom:8px; }
   .btn { display:inline-block; background:#007AFF; color:#fff; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; margin-top:12px; }
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ddd; border-top-color:#007AFF; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 <div class="card">
-  <h2>OAuth 回调</h2>
-  <div id="debug"></div>
-  <div id="token" style="display:none">
-    <p class="info">access_token：</p>
-    <div class="code" id="tokenDisplay"></div>
+  <h2>正在连接知乎账号…</h2>
+  <div id="status"><span class="spinner"></span><span class="info">请稍候</span></div>
+  <div id="actions" style="display:none">
+    <a href="../" class="btn">返回主页</a>
   </div>
-  <a href="../login.html" class="btn">← 重新登录</a>
 </div>
 <script>
 var PROXY = 'https://delightful-forgiveness-production.up.railway.app/exchange';
-
 var params = new URLSearchParams(window.location.search);
 var code = params.get('authorization_code') || params.get('code');
-var debug = document.getElementById('debug');
+var status = document.getElementById('status');
+var actions = document.getElementById('actions');
 
-var allParams = [];
-params.forEach(function (v, k) { allParams.push(k + '=' + v); });
-debug.innerHTML = '<p class="info">URL参数: ' + (allParams.length ? allParams.join(', ') : '(无)') + '</p>';
+function show(html) { status.innerHTML = html; }
+function done(msg) {
+  show('<p class="success">✅ ' + msg + '</p>');
+  actions.style.display = 'block';
+}
+function fail(msg) {
+  show('<p class="error">❌ ' + msg + '</p>');
+  actions.style.display = 'block';
+}
 
 var error = params.get('error');
 if (error) {
-  debug.innerHTML += '<p class="error">❌ ' + (params.get('error_description') || error) + '</p>';
-  debug.innerHTML += '<p class="info">请确认 redirect_uri 已在知乎后台注册</p>';
+  fail(params.get('error_description') || error);
 } else if (code) {
-  debug.innerHTML += '<p class="info">✅ 收到授权码：</p><div class="code">' + code + '</div>';
-  debug.innerHTML += '<p class="info">正在通过代理交换 access_token...</p>';
-
+  show('<span class="spinner"></span><span class="info">正在换取 token…</span>');
   fetch(PROXY + '?code=' + encodeURIComponent(code))
-  .then(function (r) { return r.json(); })
-  .then(function (data) {
-    if (data.access_token) {
-      debug.innerHTML += '<p class="info">✅ 交换成功！正在回传到应用...</p>';
-      // 将 token 传回 Electron（自定义协议）
-      window.location.href = 'screentoy://oauth?token=' + encodeURIComponent(data.access_token);
-      // 如果不是从 app 打开，800ms 后回主页
-      setTimeout(function () {
-        window.location.href = 'https://wenlei.github.io/screen-toy/';
-      }, 800);
-    } else {
-      debug.innerHTML += '<p class="error">❌ 交换失败：' + JSON.stringify(data) + '</p>';
-    }
-  })
-  .catch(function (err) {
-    debug.innerHTML += '<p class="error">⚠️ ' + err.message + '</p>';
-  });
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.access_token) {
+        localStorage.setItem('zhihu_access_token', data.access_token);
+        done('连接成功！正在跳转…');
+        setTimeout(function() {
+          window.location.href = '../';
+        }, 1000);
+      } else {
+        fail('换取失败：' + JSON.stringify(data));
+      }
+    })
+    .catch(function(err) {
+      fail('请求出错：' + err.message);
+    });
 } else {
-  debug.innerHTML += '<p class="error">未收到授权码</p>';
+  fail('未收到授权码，请重新登录');
+  actions.style.display = 'block';
 }
 </script>
 </body>
