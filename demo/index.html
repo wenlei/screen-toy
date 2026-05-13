@@ -7,6 +7,49 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+/* ── Entry overlay ─────────────────────────────────── */
+#entryOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(250,250,248,0.35);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.6s ease;
+}
+#entryOverlay.hide { opacity: 0; pointer-events: none; }
+.entry-glass {
+  text-align: center;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.8);
+  border-radius: 28px;
+  padding: 48px 64px;
+  box-shadow: 0 8px 40px rgba(42,37,32,0.12), 0 1.5px 0 rgba(255,255,255,0.9) inset;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.entry-logo {
+  width: 88px; height: 88px; object-fit: contain;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 12px rgba(42,37,32,0.15));
+}
+.entry-title {
+  font-size: 42px; font-weight: 700; color: #2a2520;
+  letter-spacing: 0.06em; margin-bottom: 8px;
+}
+.entry-sub {
+  font-size: 18px; color: #7a6e65; margin-bottom: 32px;
+}
+.entry-hint {
+  font-size: 14px; color: #aaa;
+  letter-spacing: 0.08em;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.5; } 50% { opacity: 1; }
+}
+
 /* ── Reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -559,6 +602,16 @@ footer a:hover { color: #d05a28; }
     </filter>
   </defs>
 </svg>
+
+<!-- Glass entry overlay -->
+<div id="entryOverlay">
+  <div class="entry-glass">
+    <img src="assets/icon/logo.png" alt="logo" class="entry-logo">
+    <h1 class="entry-title">桌伴</h1>
+    <p class="entry-sub">刘看山的桌面生活</p>
+    <div class="entry-hint">点击任意处进入</div>
+  </div>
+</div>
 
 <!-- Nav -->
 <nav>
@@ -1119,6 +1172,16 @@ setInterval(() => {
   setTimeout(() => { bubble.textContent = bubbles[bi]; bubble.style.opacity = 1; }, 300);
 }, 3000);
 bubble.style.transition = 'opacity .3s';
+
+// ── Entry overlay ────────────────────────────────────────────
+(function() {
+  var overlay = document.getElementById('entryOverlay');
+  if (!overlay) return;
+  overlay.addEventListener('click', function() {
+    overlay.classList.add('hide');
+    setTimeout(function() { overlay.style.display = 'none'; }, 650);
+  });
+})();
 
 // ── 登录状态 ──────────────────────────────────────────────────
 (function() {
