@@ -93,6 +93,10 @@ function loadSettings() {
     if (fs.existsSync(file)) {
       const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
       Object.assign(currentSettings, data);
+      // 若保存值为空则回退到内置默认 Key
+      if (!currentSettings.agentApiKey) {
+        currentSettings.agentApiKey = 'glywLStqwOGbkLNpO1f3ODZ0EACBTH3X';
+      }
     }
   } catch (e) { /* use defaults */ }
 }
