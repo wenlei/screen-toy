@@ -939,7 +939,10 @@ function createSettingsWindow() {
   settingsWin = new BrowserWindow({
     width: 360,
     height: 520,
-    resizable: false,
+    resizable: true,
+    minWidth: 360,
+    maxWidth: 360,
+    minHeight: 400,
     transparent: false,
     frame: true,
     titleBarStyle: 'hidden',
