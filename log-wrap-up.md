@@ -429,3 +429,65 @@
 - `event_animations.json` 仅在 `did-finish-load` 时加载一次
 - 应用跨天后动画不随日期切换（如儿童节过了仍显示）
 - 修复：提取 `checkEventAnimations()`，外加 60 分钟 `setInterval` 定时刷新
+
+---
+
+### 20. 知乎 API Key 默认值硬编码
+
+**需求**：新用户无需手动配置 API Key
+
+**模块**：`electron/main.ts` · `src/panels/settings.js`
+
+**改动点**：
+- `main.ts:65` — `agentApiKey` 默认值从 `''` 改为 `'glywLStqwOGbkLNpO1f3ODZ0EACBTH3X'`
+- `settings.js:5` — 同理
+- 已有 `screen-toy-settings.json` 的用户不受影响
+
+---
+
+### 21. 刘看山入场位置调整
+
+**需求**：入场动画在屏幕中心偏下
+
+**模块**：`src/renderer.js`
+
+**改动点**：
+- `renderer.js:483` — `sy` 计算添加 `+ canvas.height * 0.08` 偏移
+
+---
+
+### 22. 动画注册模块解耦
+
+**需求**：renderer.js 事件动画代码臃肿（95 行）
+
+**模块**：`src/event-anim.js`（新增）
+
+**改动点**：
+- 提取 `window.EventAnim.apply()` 统一入口
+- `renderer.js` 从 95 行缩至 8 行
+
+---
+
+### 23. 文档 + 展示页更新
+
+**模块**：项目文档
+
+**改动点**：
+- `demo/index.html` — 北极狐展示页恢复，"有脾气的错误" → "会说话的'错误'"
+- `demo/api.html` — Moltbook API 鉴权 demo 独立页面
+- `demo/login.html` + `demo/callback/index.html` — OAuth 登录流程
+- `animations.md` — 移至根目录
+
+---
+
+### Git 提交记录
+
+| Commit | 说明 |
+|--------|------|
+| `feafbd4` | fix: 动画审计修复 + 风格模板重构 + 清理无效文件 |
+| `6119e5c` | fix: 流式响应 reasoning_content 支持 + 划词提问 + 引用切分 |
+| `6c4b5a8` | fix: MBTI 默认值统一 ENTP + Mother's Day 事件动画配置 |
+| `7661734` | fix: 恢复北极狐展示页 + Moltbook demo 移至 api.html |
+| `6102da3` | fix: 更新下载地址为 GitHub Release 链接 |
+| `82b49c4` | fix: 硬编码知乎 API Key 默认值 |
+| `e8a0958` | fix: 刘看山入场位置从中心改为中心偏下 |
