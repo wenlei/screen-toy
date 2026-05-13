@@ -48,9 +48,10 @@ if (error) {
   .then(function (r) { return r.json(); })
   .then(function (data) {
     if (data.access_token) {
-      document.getElementById('token').style.display = 'block';
-      document.getElementById('tokenDisplay').textContent = data.access_token;
-      debug.innerHTML += '<p class="info">✅ 交换成功！</p>';
+      debug.innerHTML += '<p class="info">✅ 交换成功！正在跳转...</p>';
+      setTimeout(function () {
+        window.location.href = 'https://wenlei.github.io/screen-toy/';
+      }, 800);
     } else {
       debug.innerHTML += '<p class="error">❌ 交换失败：' + JSON.stringify(data) + '</p>';
     }
