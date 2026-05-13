@@ -1,6 +1,6 @@
 {
   "name": "screen-toy",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Desktop pixel robot companion",
   "main": "out/electron/main.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "build": {
     "appId": "com.screentoy.app",
-    "productName": "Screen Toy",
+    "productName": "桌伴",
     "icon": "src/assets/icon/icon.png",
     "mac": {
       "category": "public.app-category.entertainment",
