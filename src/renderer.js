@@ -72,9 +72,13 @@
   var MELT_FRAME_MS = cfg.meltFrameMs || 120;  // slower: 24 frames ≈ 2.9 s
 
   var bigNoseActive = false;
+  var butterflyActive = false;
+  var butterflyFrameIdx = 0;
+  var butterflyFrameTimer = 0;
   var bigNoseFrameIdx = 0;
   var bigNoseFrameTimer = 0;
   var BIGNOSE_FRAME_MS = 80;
+  var BUTTERFLY_FRAME_MS = 80;
 
   // 人生亦如是 (flower phases: 1=grow, 2=fall)
   var flowerPhase = 0;
@@ -176,9 +180,6 @@
   var lastClickTime = 0;
   var DOUBLE_CLICK_MS = 400;
 
-  // Mouse idle dance
-  var mouseIdleTimer = 0;
-  var MOUSE_IDLE_DANCE_S = 20;
   var lastMouseMovePos = null;
 
   // Frame timing
@@ -250,6 +251,11 @@
         bigNoseActive = true;
         bigNoseFrameIdx = 0;
         bigNoseFrameTimer = 0;
+        animDialogueFired = {};
+      } else if (name === 'butterfly' && !butterflyActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive && freezePhase === 0) {
+        butterflyActive = true;
+        butterflyFrameIdx = 0;
+        butterflyFrameTimer = 0;
         animDialogueFired = {};
       } else if (name === 'flower' && flowerPhase === 0 && !bigNoseActive && hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive && freezePhase === 0) {
         flowerPhase = 1;
@@ -555,6 +561,22 @@
       }
       // ───────────────────────────────────────────────────────────────────────
 
+      // ── Butterfly animation ───────────────────────────────────────────────
+      if (butterflyActive) {
+        butterflyFrameTimer += dt * 1000;
+        var BFTOTAL = window.ButterflySprite ? window.ButterflySprite.FRAME_COUNT : 24;
+        while (butterflyFrameTimer >= BUTTERFLY_FRAME_MS && butterflyFrameIdx < BFTOTAL) {
+          butterflyFrameTimer -= BUTTERFLY_FRAME_MS;
+          butterflyFrameIdx++;
+        }
+        if (butterflyFrameIdx >= BFTOTAL) {
+          butterflyActive = false;
+          butterflyFrameIdx = 0;
+          butterflyFrameTimer = 0;
+        }
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       // ── 人生亦如是 (flower grow → fall) ────────────────────────────────────
       if (flowerPhase > 0) {
         flowerFrameTimer += dt * 1000;
@@ -674,7 +696,7 @@
         // Single cooldown → pick one random animation from pool
         var canAutoAnim = !isDragging && !behavior.isSleeping() && behavior.state !== 'waking_up' && !sunGameActive;
         if (canAutoAnim) {
-          var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive && twistPhase === 0 && applePhase === 0 && freezePhase === 0 && !bigNoseActive && flowerPhase === 0;
+          var noOtherAnim = hulaPhase === 0 && !sneezeActive && !meltActive && twistPhase === 0 && applePhase === 0 && freezePhase === 0 && !bigNoseActive && flowerPhase === 0 && !okActive && !butterflyActive;
           if (noOtherAnim) {
             randomAnimCooldown -= dt * 1000;
             if (randomAnimCooldown <= 0) {
@@ -690,6 +712,14 @@
                 pool.push(function () { hulaPhase = 1; hulaFrameIdx = 0; hulaFrameTimer = 0; });
               if (window.AppleSprite && window.AppleSprite.loaded())
                 pool.push(function () { applePhase = 1; appleFrameIdx = 0; appleFrameTimer = 0; });
+              if (window.FreezeSprite && window.FreezeSprite.loaded() && window.ThawSprite && window.ThawSprite.loaded())
+                pool.push(function () { freezePhase = 1; freezeFrameIdx = 0; freezeFrameTimer = 0; });
+              if (window.BigNoseSprite && window.BigNoseSprite.loaded())
+                pool.push(function () { bigNoseActive = true; bigNoseFrameIdx = 0; bigNoseFrameTimer = 0; });
+              if (window.Flower1Sprite && window.Flower1Sprite.loaded() && window.Flower2Sprite && window.Flower2Sprite.loaded())
+                pool.push(function () { flowerPhase = 1; flowerFrameIdx = 0; flowerFrameTimer = 0; });
+              if (window.ButterflySprite && window.ButterflySprite.loaded())
+                pool.push(function () { butterflyActive = true; butterflyFrameIdx = 0; butterflyFrameTimer = 0; });
 
               if (pool.length > 0) {
                 pool[Math.floor(Math.random() * pool.length)]();
@@ -724,26 +754,7 @@
         behavior.update(dt, mouseScreen, sb);
       }
 
-      // ── Mouse-idle dance trigger ──────────────────────────────────────────
-      if (!sunGameActive && !isDragging && !behavior.isSleeping()) {
-        var mouseMoved = mouseScreen && lastMouseMovePos &&
-          (mouseScreen.x !== lastMouseMovePos.x || mouseScreen.y !== lastMouseMovePos.y);
-        if (mouseMoved) {
-          mouseIdleTimer = 0;
-        } else {
-          mouseIdleTimer += dt;
-          if (mouseIdleTimer >= MOUSE_IDLE_DANCE_S &&
-            hulaPhase === 0 && twistPhase === 0 && !sneezeActive && !meltActive && enterFrameIdx < 0) {
-            hulaPhase = 1;
-            hulaFrameIdx = 0;
-            hulaFrameTimer = 0;
-            mouseIdleTimer = 0;
-          }
-        }
-        lastMouseMovePos = mouseScreen ? { x: mouseScreen.x, y: mouseScreen.y } : lastMouseMovePos;
-      } else {
-        mouseIdleTimer = 0;
-      }
+      lastMouseMovePos = mouseScreen ? { x: mouseScreen.x, y: mouseScreen.y } : lastMouseMovePos;
       // ─────────────────────────────────────────────────────────────────────
 
       // ── Sun-dodge game update ─────────────────────────────────────────────
@@ -960,6 +971,13 @@
           var bnOy = Math.round(canvas.height / 2 - bnDH / 2);
           window.BigNoseSprite.drawDirect(ctx, bigNoseFrameToShow, bnOx, bnOy, bnDW, bnDH);
         }
+      } else if (butterflyActive && window.ButterflySprite) {
+        var bfFrameToShow = Math.min(butterflyFrameIdx, window.ButterflySprite.FRAME_COUNT - 1);
+        var bfDW = Math.round(dW * 1.3);
+        var bfDH = Math.round(dH * 1.3);
+        var bfOx = Math.round(canvas.width / 2 - bfDW / 2);
+        var bfOy = Math.round(canvas.height / 2 - bfDH / 2);
+        window.ButterflySprite.drawDirect(ctx, bfFrameToShow, bfOx, bfOy, bfDW, bfDH);
       } else if (flowerPhase > 0) {
         var curFlowerSp = flowerPhase === 1 ? window.Flower1Sprite : window.Flower2Sprite;
         if (curFlowerSp) {

@@ -391,11 +391,12 @@
   window.MeltSprite       = makeSprite('melt_sheet.png',  6, 256, 256, 24);
   window.AppleSprite      = makeSprite('apple_sheet.png', 6, 256, 256, 24);
   window.HudunSprite      = makeSprite('hudun_sheet.png', 6, 256, 256, 24);
-  window.OkSprite         = makeSprite('ok_sheet.png',    6, 256, 256, 24);
+  window.OkSprite         = makeSprite('butterfly_sheet.png', 6, 256, 256, 24);
   window.FreezeSprite     = makeSprite('freeze_sheet.png', 6, 256, 256, 24);
   window.ThawSprite           = makeSprite('thaw_sheet.png',         6, 256, 256, 24);
   window.TwistStruggleSprite  = makeSprite('twist_struggle_sheet.png', 6, 256, 256, 24);
   window.BigNoseSprite    = makeSprite('bignose_sheet.png', 6, 256, 256, 24);
-  window.Flower1Sprite    = makeSprite('flower1_sheet.png', 6, 256, 256, 24);
-  window.Flower2Sprite    = makeSprite('flower2_sheet.png', 6, 256, 256, 24);
+  window.Flower1Sprite    = makeSprite('flower1_sheet.png',    6, 256, 256, 24);
+  window.Flower2Sprite    = makeSprite('flower2_sheet.png',    6, 256, 256, 24);
+  window.ButterflySprite  = makeSprite('butterfly_sheet.png', 6, 256, 256, 24);
 })();

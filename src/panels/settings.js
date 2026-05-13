@@ -44,6 +44,7 @@
     { id: 'freeze',     label: '冻成冰棍',            icon: '🧊', durationMs: 6000 },
     { id: 'bignose',    label: '大鼻子',              icon: '👃', durationMs: 2000 },
     { id: 'flower',     label: '人生亦如是',           icon: '🌸', durationMs: 5000 },
+    { id: 'butterfly',  label: '看蝴蝶',               icon: '🦋', durationMs: 2000 },
   ];
 
   var animTimers = {};
