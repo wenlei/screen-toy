@@ -1177,9 +1177,14 @@ bubble.style.transition = 'opacity .3s';
 (function() {
   var overlay = document.getElementById('entryOverlay');
   if (!overlay) return;
+  // 已登录直接跳过
+  if (localStorage.getItem('zhihu_access_token')) {
+    overlay.style.display = 'none';
+    return;
+  }
+  // 未登录：点击强制跳转登录页
   overlay.addEventListener('click', function() {
-    overlay.classList.add('hide');
-    setTimeout(function() { overlay.style.display = 'none'; }, 650);
+    window.location.href = 'login.html';
   });
 })();
 
