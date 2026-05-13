@@ -416,7 +416,7 @@
   }
   var screenW = typeof screen !== 'undefined' ? screen.width : 1440;
   var screenH = typeof screen !== 'undefined' ? screen.height : 900;
-  behavior.initPosition(screenW * 0.75, screenH * 0.65);
+  behavior.initPosition(screenW / 2, screenH / 2);
 
   // --- Game loop ---
   function loop(timestamp) {
