@@ -48,7 +48,10 @@ if (error) {
   .then(function (r) { return r.json(); })
   .then(function (data) {
     if (data.access_token) {
-      debug.innerHTML += '<p class="info">✅ 交换成功！正在跳转...</p>';
+      debug.innerHTML += '<p class="info">✅ 交换成功！正在回传到应用...</p>';
+      // 将 token 传回 Electron（自定义协议）
+      window.location.href = 'screentoy://oauth?token=' + encodeURIComponent(data.access_token);
+      // 如果不是从 app 打开，800ms 后回主页
       setTimeout(function () {
         window.location.href = 'https://wenlei.github.io/screen-toy/';
       }, 800);
