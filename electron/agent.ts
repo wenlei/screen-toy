@@ -501,37 +501,33 @@ export class Agent {
       }
     }
 
-    // ---- 直答开启：调 chat API（可选带搜索上下文） ----
-    let searchContext = '';
+    // ---- 直答开启：搜索与模型请求并行，搜索结果仅展示不注入 prompt ----
+    // 立刻启动搜索（不等待），同时直接向模型发送用户消息
+    let searchPromise: Promise<SearchResult[]> = Promise.resolve([]);
     if (this.config.provider === 'zhihu' && this.config.zhihuAccessSecret) {
-      try {
-        var searchResults2: SearchResult[] = [];
-        if (this.config.searchType === 'global') {
-          searchResults2 = await searchZhihuGlobal(content, this.config.zhihuAccessSecret);
-          if (searchResults2.length === 0) searchResults2 = await searchZhihu(content, this.config.zhihuAccessSecret);
-        } else {
-          searchResults2 = await searchZhihu(content, this.config.zhihuAccessSecret);
-          if (searchResults2.length === 0) searchResults2 = await searchZhihuGlobal(content, this.config.zhihuAccessSecret);
+      const accessSecret = this.config.zhihuAccessSecret;
+      const searchType = this.config.searchType;
+      searchPromise = (async () => {
+        try {
+          var results: SearchResult[] = [];
+          if (searchType === 'global') {
+            results = await searchZhihuGlobal(content, accessSecret);
+            if (results.length === 0) results = await searchZhihu(content, accessSecret);
+          } else {
+            results = await searchZhihu(content, accessSecret);
+            if (results.length === 0) results = await searchZhihuGlobal(content, accessSecret);
+          }
+          if (results.length === 0) results = await searchBing(content);
+          return results;
+        } catch (e) {
+          return [];
         }
-        if (searchResults2.length === 0) searchResults2 = await searchBing(content);
-        if (searchResults2.length > 0) {
-          // 模型输入：纯文本格式（不展示给用户）
-          searchContext = `\n\n---\n以下为搜索结果，请参考这些信息回答。回复末尾列出引用的来源，每条一行：\n`;
-          searchResults2.forEach((r, i) => {
-            searchContext += `\n${r.title}\n${r.snippet}\n[${r.title}](${r.url})\n`;
-          });
-          // 视觉展示：传原始数据给 dialog，由模板函数渲染
-          this.searchResults = searchResults2;
-        } else {
-          this.searchResults = [];
-        }
-      } catch (e) { throw e; }
+      })();
     }
+    this.searchResults = []; // 清空上次结果，搜索完成后由调用方取 searchResults
 
-    // Build user message with optional search context
-    const userContent = searchContext
-      ? content + searchContext
-      : content;
+    // 模型直接用原始用户消息（不注入搜索上下文）
+    const userContent = content;
 
     // 构建发送给模型的消息列表
     var sendMessages;
@@ -628,10 +624,10 @@ export class Agent {
             });
             res.on('end', () => {
               if (statusCode >= 400) {
-                var errBody = data || '';
-                try { var ej = JSON.parse(data); errBody = ej.error?.message || ej.error || data.slice(0, 200); } catch (e) { }
-                var errorCode = String(statusCode);
-                if (ej && ej.error?.code) errorCode = ej.error.code;
+                var errBody = '';
+                var ej: any = null;
+                try { ej = JSON.parse(buffer || data); errBody = ej?.error?.message || ej?.error || (buffer || data).slice(0, 200); } catch (e) { }
+                var errorCode = ej?.error?.code ? String(ej.error.code) : String(statusCode);
                 const errMsg = getErrorMessage(errorCode);
                 if (onError) onError(errMsg);
                 reject(new Error(errMsg));
@@ -639,24 +635,23 @@ export class Agent {
               }
               // 优先 content，空时回退 reasoning
               var finalReply = fullReply || reasoningText;
-              if (finalReply) {
-                this.history.push({ role: 'assistant', content: finalReply });
+              if (!finalReply) {
+                const errMsg = '流式响应为空';
+                if (onError) onError(errMsg);
+                reject(new Error(errMsg));
+                return;
+              }
+              this.history.push({ role: 'assistant', content: finalReply });
+              // 等待并行搜索完成（通常已完成），再触发 onDone 让调用方取 searchResults
+              searchPromise.then(results => {
+                this.searchResults = results;
                 if (onDone) onDone(finalReply);
                 resolve(finalReply);
-              } else {
-                const errMsg = '流式响应为空';
-                if (onError) onError(errMsg);
-                reject(new Error(errMsg));
-              }
-              if (fullReply) {
-                this.history.push({ role: 'assistant', content: fullReply });
-                if (onDone) onDone(fullReply);
-                resolve(fullReply);
-              } else {
-                const errMsg = '流式响应为空';
-                if (onError) onError(errMsg);
-                reject(new Error(errMsg));
-              }
+              }).catch(() => {
+                this.searchResults = [];
+                if (onDone) onDone(finalReply);
+                resolve(finalReply);
+              });
             });
           } else {
             // Non-streaming mode
@@ -694,8 +689,15 @@ export class Agent {
                 }
 
                 this.history.push({ role: 'assistant', content: reply });
-                if (onDone) onDone(reply);
-                resolve(reply);
+                searchPromise.then(results => {
+                  this.searchResults = results;
+                  if (onDone) onDone(reply);
+                  resolve(reply);
+                }).catch(() => {
+                  this.searchResults = [];
+                  if (onDone) onDone(reply);
+                  resolve(reply);
+                });
               } catch (e: any) {
                 const errMsg = '解析响应失败: ' + (data ? data.slice(0, 200) : 'empty response');
                 if (onError) onError(errMsg);
@@ -720,12 +722,7 @@ export class Agent {
   }
 }
 
-const DEFAULT_SYSTEM_PROMPT = `## 回答风格
-
-## 关于搜索结果
-当消息中包含搜索结果时，参考这些信息回答。回复末尾列出引用的来源，每条一行，用 * [标题](url) 格式。
-
-## 关于代码
+const DEFAULT_SYSTEM_PROMPT = `## 关于代码
 当用户询问代码问题时，给出清晰的解释和可运行的代码示例。
 
 ## 关于文件系统

@@ -6,6 +6,7 @@
   var waiting = false;
   var streamingEl = null;
   var streamingText = '';
+  var streamingRafPending = false;
 
   // ---- Minimal Markdown → HTML ----
   function md2html(text) {
@@ -55,7 +56,7 @@
     if (orderedItems.length > 0) {
       var olHtml = '<ol>';
       orderedItems.forEach(function (item, i) {
-        olHtml += '<li>' + (i + 1) + '. ' + item + '</li>';
+        olHtml += '<li>' + item + '</li>';
       });
       olHtml += '</ol>';
       html = html.replace(/___OL_ITEM___(\n?)*/g, '');
@@ -179,18 +180,6 @@
       });
       footer.appendChild(copyBtn);
 
-      var saveBtn = document.createElement('button');
-      saveBtn.className = 'save-btn';
-      saveBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">bookmark_border</span>';
-      saveBtn.title = '收藏';
-      saveBtn.addEventListener('click', function () {
-        if (window.screenToyDialog && window.screenToyDialog.bookmarkMessage) {
-          window.screenToyDialog.bookmarkMessage(text);
-          saveBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">bookmark</span>';
-          saveBtn.style.color = '#FF9500';
-        }
-      });
-      footer.appendChild(saveBtn);
 
       container.appendChild(div);
       container.appendChild(footer);
@@ -319,15 +308,17 @@
   // 搜索结果模板 → 可折叠 HTML
   function renderSearchResults(results, title) {
     var html = '<div class="search-results" style="margin-bottom:8px;">🔍 <strong>' + (title || '搜索结果') + '</strong></div>';
+    html += '<ol style="margin:0;padding-left:20px;">';
     results.forEach(function (r) {
-      html += '<div class="hotlist-item">';
+      html += '<li class="hotlist-item">';
       if (r.snippet || r.summary) html += '<span class="hotlist-toggle material-symbols-outlined">expand_more</span>';
       if (r.url) html += '<a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a>';
       else html += r.title;
       var s = r.snippet || r.summary || '';
       if (s) html += '<div class="hotlist-summary">' + s.slice(0, 200) + '</div>';
-      html += '</div>';
+      html += '</li>';
     });
+    html += '</ol>';
     return html;
   }
 
@@ -341,6 +332,7 @@
       i++;
     }
     // 条目
+    html += '<ol style="margin:0;padding-left:20px;">';
     while (i < lines.length) {
       var line = lines[i];
       var match = line.match(/^\*\*(\d+)\.\*\*\s*\[(.+?)\]\((.+?)\)/);
@@ -353,15 +345,16 @@
           summary += lines[i] + ' ';
           i++;
         }
-        html += '<div class="hotlist-item">';
+        html += '<li class="hotlist-item">';
         if (summary.trim()) html += '<span class="hotlist-toggle material-symbols-outlined">expand_more</span>';
         html += '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>';
         if (summary.trim()) html += '<div class="hotlist-summary">' + summary.trim() + '</div>';
-        html += '</div>';
+        html += '</li>';
       } else {
         i++;
       }
     }
+    html += '</ol>';
     return html;
   }
 
@@ -569,10 +562,21 @@
         streamingEl.className = 'msg bot';
         msgs.appendChild(streamingEl);
         streamingText = '';
+        streamingRafPending = false;
       }
+      // 累积原始文本（用于历史记录）
       streamingText += chunk;
-      streamingEl.innerHTML = md2html(streamingText);
-      msgs.scrollTop = msgs.scrollHeight;
+      // 节流渲染：每帧最多渲染一次
+      if (!streamingRafPending) {
+        streamingRafPending = true;
+        requestAnimationFrame(function () {
+          streamingRafPending = false;
+          if (streamingEl) {
+            streamingEl.innerHTML = md2html(streamingText);
+            msgs.scrollTop = msgs.scrollHeight;
+          }
+        });
+      }
     });
 
     // 完整响应：最终渲染
@@ -588,6 +592,7 @@
         if (streamingEl.parentNode) streamingEl.remove();
         streamingEl = null;
         streamingText = '';
+        streamingRafPending = false;
         addMsg(msg, 'bot', true);
       } else {
         // 自动检测 HTML 内容（搜索结果 / 热榜已使用 HTML 格式）

@@ -200,7 +200,7 @@
   var quitSheet = new Image();
   var quitLoaded = false;
   quitSheet.onload = function () { quitLoaded = true; };
-  quitSheet.src = basePath + 'quit_sheet.png';
+  quitSheet.src = basePath + (Math.random() < 0.5 ? 'quit_sheet.png' : 'quit2_sheet.png');
   if (quitSheet.complete) quitLoaded = true;
 
   // Draw one quit-animation frame into ctx (DISPLAY_W × DISPLAY_H canvas).

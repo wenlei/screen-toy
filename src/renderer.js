@@ -181,6 +181,7 @@
   var DOUBLE_CLICK_MS = 400;
 
   var lastMouseMovePos = null;
+  var prevBehaviorState = '';
 
   // Frame timing
   var lastTime = performance.now();
@@ -575,6 +576,18 @@
           butterflyFrameTimer = 0;
         }
       }
+      // ───────────────────────────────────────────────────────────────────────
+
+      // ── Sit state → 歇一会儿 trigger ─────────────────────────────────────
+      if (behavior.state === 'sit' && prevBehaviorState !== 'sit' &&
+          !butterflyActive && hulaPhase === 0 && twistPhase === 0 &&
+          !sneezeActive && !meltActive && freezePhase === 0 && !bigNoseActive && flowerPhase === 0) {
+        butterflyActive = true;
+        butterflyFrameIdx = 0;
+        butterflyFrameTimer = 0;
+        animDialogueFired = {};
+      }
+      prevBehaviorState = behavior.state;
       // ───────────────────────────────────────────────────────────────────────
 
       // ── 人生亦如是 (flower grow → fall) ────────────────────────────────────
