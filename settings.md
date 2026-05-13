@@ -49,7 +49,7 @@
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `agentApiKey` | string | '' | 知乎 Access Secret |
+| `agentApiKey` | string | `glywLStqwOGbkLNpO1f3ODZ0EACBTH3X` | 知乎 Access Secret |
 | `agentProvider` | string | 'zhihu' | AI Provider |
 | `agentModel` | string | 'zhida-fast-1p5' | AI 模型 |
 | `enableDirectAnswer` | bool | true | 直答开关 |
