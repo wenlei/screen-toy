@@ -417,7 +417,6 @@
   var screenW = typeof screen !== 'undefined' ? screen.width : 1440;
   var screenH = typeof screen !== 'undefined' ? screen.height : 900;
   behavior.initPosition(screenW * 0.75, screenH * 0.65);
-  moveWindow(behavior.screenX, behavior.screenY);
 
   // --- Game loop ---
   function loop(timestamp) {
@@ -827,8 +826,10 @@
         behavior.bubbleQueue = [];
       }
 
-      // Sync window position to robot position
-      moveWindow(behavior.screenX, behavior.screenY);
+      // Sync window position to robot position (skip during entrance)
+      if (enterFrameIdx < 0) {
+        moveWindow(behavior.screenX, behavior.screenY);
+      }
 
       // Send robot bounds to main process for click-through management
       boundsSendTimer += dt;
