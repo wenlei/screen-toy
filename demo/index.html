@@ -609,7 +609,7 @@ footer a:hover { color: #d05a28; }
     <img src="assets/icon/logo.png" alt="logo" class="entry-logo">
     <h1 class="entry-title">桌伴</h1>
     <p class="entry-sub">刘看山的桌面生活</p>
-    <div class="entry-hint">点击连接知乎账号</div>
+    <div class="entry-hint">点击任意处进入</div>
   </div>
 </div>
 
@@ -1182,9 +1182,9 @@ bubble.style.transition = 'opacity .3s';
     overlay.style.display = 'none';
     return;
   }
-  // 未登录：点击强制跳转登录页
   overlay.addEventListener('click', function() {
-    window.location.href = 'login.html';
+    overlay.classList.add('hide');
+    setTimeout(function() { overlay.style.display = 'none'; }, 650);
   });
 })();
 
