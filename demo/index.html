@@ -41,6 +41,20 @@
 .entry-sub {
   font-size: 18px; color: #7a6e65; margin-bottom: 32px;
 }
+.entry-login-btn {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 10px 28px;
+  background: #0084FF;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  pointer-events: auto;
+  transition: opacity 0.2s;
+}
+.entry-login-btn:hover { opacity: 0.85; }
 .entry-hint {
   font-size: 14px; color: #aaa;
   letter-spacing: 0.08em;
@@ -609,7 +623,8 @@ footer a:hover { color: #d05a28; }
     <img src="assets/icon/logo.png" alt="logo" class="entry-logo">
     <h1 class="entry-title">桌伴</h1>
     <p class="entry-sub">刘看山的桌面生活</p>
-    <div class="entry-hint">点击任意处进入</div>
+    <a href="login.html" class="entry-login-btn" onclick="event.stopPropagation()">点击此处连接知乎</a>
+    <div class="entry-hint">或点击任意处直接进入</div>
   </div>
 </div>
 
