@@ -7,63 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── Entry overlay ─────────────────────────────────── */
-#entryOverlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(250,250,248,0.35);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.6s ease;
-}
-#entryOverlay.hide { opacity: 0; pointer-events: none; }
-.entry-glass {
-  text-align: center;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid rgba(255,255,255,0.8);
-  border-radius: 28px;
-  padding: 48px 64px;
-  box-shadow: 0 8px 40px rgba(42,37,32,0.12), 0 1.5px 0 rgba(255,255,255,0.9) inset;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: none;
-}
-.entry-logo {
-  width: 88px; height: 88px; object-fit: contain;
-  margin-bottom: 16px;
-  filter: drop-shadow(0 4px 12px rgba(42,37,32,0.15));
-}
-.entry-title {
-  font-size: 42px; font-weight: 700; color: #2a2520;
-  letter-spacing: 0.06em; margin-bottom: 8px;
-}
-.entry-sub {
-  font-size: 18px; color: #7a6e65; margin-bottom: 32px;
-}
-.entry-login-btn {
-  display: inline-block;
-  margin-bottom: 16px;
-  padding: 10px 28px;
-  background: #0084FF;
-  color: #fff;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  text-decoration: none;
-  pointer-events: auto;
-  transition: opacity 0.2s;
-}
-.entry-login-btn:hover { opacity: 0.85; }
-.entry-hint {
-  font-size: 14px; color: #aaa;
-  letter-spacing: 0.08em;
-  animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 0.5; } 50% { opacity: 1; }
-}
-
 /* ── Reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -617,18 +560,6 @@ footer a:hover { color: #d05a28; }
   </defs>
 </svg>
 
-<!-- Glass entry overlay -->
-<div id="entryOverlay">
-  <div class="entry-glass">
-    <img src="assets/icon/logo.png" alt="logo" class="entry-logo">
-    <h1 class="entry-title">桌伴</h1>
-    <p class="entry-sub">刘看山的桌面生活</p>
-    <a href="login.html" class="entry-login-btn" onclick="event.stopPropagation()">点击此处连接知乎</a>
-    <p style="font-size:11px;color:#bbb;margin-top:8px;margin-bottom:12px;pointer-events:none;">注：登录依赖后台服务，访问可能不稳定</p>
-    <div class="entry-hint">或点击任意处直接进入</div>
-  </div>
-</div>
-
 <!-- Nav -->
 <nav>
   <div class="nav-logo"><img src="assets/icon/logo.png" alt="logo" style="width:40px;height:40px;object-fit:contain;display:block;"><span>桌</span>伴</div>
@@ -639,7 +570,6 @@ footer a:hover { color: #d05a28; }
      <a href="#download">下载</a>
    </div>
   <button class="nav-cta" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">免费下载</button>
-  <a id="navLoginBtn" href="login.html" style="margin-left:10px;padding:7px 16px;border:1.5px solid #d05a28;color:#d05a28;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;">连接知乎</a>
 </nav>
 
 <!-- Hero -->
@@ -1189,40 +1119,6 @@ setInterval(() => {
 }, 3000);
 bubble.style.transition = 'opacity .3s';
 
-// ── Entry overlay ────────────────────────────────────────────
-(function() {
-  var overlay = document.getElementById('entryOverlay');
-  if (!overlay) return;
-  // 已登录直接跳过
-  if (localStorage.getItem('zhihu_access_token')) {
-    overlay.style.display = 'none';
-    return;
-  }
-  overlay.addEventListener('click', function() {
-    overlay.classList.add('hide');
-    setTimeout(function() { overlay.style.display = 'none'; }, 650);
-  });
-})();
-
-// ── 登录状态 ──────────────────────────────────────────────────
-(function() {
-  var btn = document.getElementById('navLoginBtn');
-  if (!btn) return;
-  var token = localStorage.getItem('zhihu_access_token');
-  if (token) {
-    btn.textContent = '✓ 已连接知乎';
-    btn.style.color = '#34C759';
-    btn.style.borderColor = '#34C759';
-    btn.href = '#';
-    btn.onclick = function(e) {
-      e.preventDefault();
-      if (confirm('确认断开知乎账号连接？')) {
-        localStorage.removeItem('zhihu_access_token');
-        location.reload();
-      }
-    };
-  }
-})();
 </script>
 </body>
 </html>

@@ -2,70 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>桌伴 — 登录中</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font:14px/1.5 -apple-system, sans-serif; background:#F5F5F7; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-  .card { background:#fff; border-radius:12px; padding:24px 32px; box-shadow:0 2px 12px rgba(0,0,0,0.08); max-width:480px; width:100%; }
-  h2 { font-size:18px; margin-bottom:16px; }
-  .info { color:#6E6E73; font-size:13px; margin-bottom:4px; }
-  .error { color:#FF3B30; font-size:13px; margin-bottom:8px; }
-  .success { color:#34C759; font-size:13px; margin-bottom:8px; }
-  .btn { display:inline-block; background:#007AFF; color:#fff; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; margin-top:12px; }
-  .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ddd; border-top-color:#007AFF; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-</style>
+<meta http-equiv="refresh" content="0;url=../">
+<title>桌伴</title>
 </head>
 <body>
-<div class="card">
-  <h2>正在连接知乎账号…</h2>
-  <div id="status"><span class="spinner"></span><span class="info">请稍候</span></div>
-  <div id="actions" style="display:none">
-    <a href="../" class="btn">返回主页</a>
-  </div>
-</div>
-<script>
-var PROXY = 'https://delightful-forgiveness-production.up.railway.app/exchange';
-var params = new URLSearchParams(window.location.search);
-var code = params.get('authorization_code') || params.get('code');
-var status = document.getElementById('status');
-var actions = document.getElementById('actions');
-
-function show(html) { status.innerHTML = html; }
-function done(msg) {
-  show('<p class="success">✅ ' + msg + '</p>');
-  actions.style.display = 'block';
-}
-function fail(msg) {
-  show('<p class="error">❌ ' + msg + '</p>');
-  actions.style.display = 'block';
-}
-
-var error = params.get('error');
-if (error) {
-  fail(params.get('error_description') || error);
-} else if (code) {
-  show('<span class="spinner"></span><span class="info">正在换取 token…</span>');
-  fetch(PROXY + '?code=' + encodeURIComponent(code))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.access_token) {
-        localStorage.setItem('zhihu_access_token', data.access_token);
-        done('连接成功！正在跳转…');
-        setTimeout(function() {
-          window.location.href = '../';
-        }, 1000);
-      } else {
-        fail('换取失败：' + JSON.stringify(data));
-      }
-    })
-    .catch(function(err) {
-      fail('请求出错：' + err.message);
-    });
-} else {
-  fail('未收到授权码，请重新登录');
-  actions.style.display = 'block';
-}
-</script>
+<script>window.location.replace('../');</script>
 </body>
 </html>
